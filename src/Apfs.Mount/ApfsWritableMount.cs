@@ -30,6 +30,7 @@ public sealed class ApfsWritableMount : IDisposable
     /// <param name="closeSession">true ise ayırırken oturum da kapatılır (tek birimli kullanım); false ise oturumu çağıran kapatır.</param>
     public static ApfsWritableMount Mount(WriteSession session, int volumeIndex, string? mountPoint, Action<string>? onError = null, bool closeSession = true)
     {
+        mountPoint ??= DriveLetterAllocator.GetFreeMountPoint();
         var fs = new ApfsWritableFileSystem(session, volumeIndex);
         if (onError is not null) fs.Error += onError;
         var host = new FileSystemHost(fs);
