@@ -11,6 +11,8 @@ Diski takarsınız, birkaç saniye içinde Dosya Gezgini'nde sürücü harfi ola
 > isterseniz o diskin **Yazmaya izin ver** düğmesiyle ayrıca izin verirsiniz (deneysel; bkz. "Yazma"). Verilerinizin
 > güvenliği her şeyden önce gelir.
 
+<p align="center"><img src="docs/images/tr/main.png" width="440" alt="Üç Mac diskiyle Hashido ana penceresi: Fotoğraflar (salt okunur), Arşiv (şifreli, kilitli) ve Projeler (yazılabilir)"></p>
+
 ## Neler destekleniyor
 | | |
 |---|---|
@@ -25,7 +27,7 @@ Diski takarsınız, birkaç saniye içinde Dosya Gezgini'nde sürücü harfi ola
 | 10 arayüz dili | Türkçe, English, Deutsch, Français, Español, Português (Brasil), Italiano, 日本語, 简体中文, 한국어 |
 
 ## Kurulum
-`Hashido-Setup-1.5.0.exe` dosyasını çalıştırın ve sihirbazı izleyin (İleri › Kur › Son). Windows 10/11 (64 bit) yeter;
+`Hashido-Setup-1.6.5.exe` dosyasını çalıştırın ve sihirbazı izleyin (İleri › Kur › Son). Windows 10/11 (64 bit) yeter;
 başka bir şey kurmanız gerekmez: .NET programla birlikte gelir, [WinFsp](https://winfsp.dev) sürücüsü yoksa sihirbaz onu da kurar.
 Kurulumdan sonra Başlat menüsünde **Hashido** bulunur ve tepsi simgesi her oturumda kendiliğinden açılır.
 
@@ -37,7 +39,7 @@ Kurulumdan sonra Başlat menüsünde **Hashido** bulunur ve tepsi simgesi her ot
 Kaldırmak için: **Ayarlar › Uygulamalar › Yüklü uygulamalar › Hashido › Kaldır**. Kaldırma disklerinize hiçbir şey yazmaz;
 günlük (`C:\ProgramData\APFS for Windows\log.txt`) incelemeniz için bırakılır, WinFsp kaldırılmaz. Gönderilmemiş
 raporlar ile gönderilenlerin listesi (`C:\ProgramData\APFS for Windows\reports`, `%LOCALAPPDATA%\APFS for Windows\reports`) ve otomatik raporlar
-sorusuna verdiğiniz cevap silinir, yeniden kurulumda yeniden sorulur; dil ve güncelleme bildirimi ayarlarınız kalır.
+sorusuna verdiğiniz cevap silinir, yeniden kurulumda yeniden sorulur; dil, görünüm ve güncelleme bildirimi ayarlarınız kalır.
 
 ## Kullanım
 - **Ana pencere** (Başlat menüsü veya tepsi menüsünden "Ana pencereyi aç"): takılı her Mac diski adıyla ve yanında **Güvenle
@@ -47,8 +49,15 @@ sorusuna verdiğiniz cevap silinir, yeniden kurulumda yeniden sorulur; dil ve g�
   devam eder.
 - **Tepsi paneli**: saatin yanındaki Hashido simgesine (kırmızı mühür) sol tıklayın; aynı işlemler küçük bir panelde. Sağ tık
   menüsünde "Ana pencereyi aç", disk başına "güvenle çıkar", "Yeniden tara", "Günlüğü aç" ve "Çıkış" bulunur.
-- **Açık ve koyu:** program Windows'un uygulama modunu izler (Ayarlar › Kişiselleştirme › Renkler). Modu değiştirdiğinizde program,
-  süren bir şey kalmayınca kendini yeni modda yeniden başlatır.
+- **Görünüm:** iki tasarım, Windows 11 (Windows'un kendi görünümü ve vurgu rengi; varsayılan) ve Hashido (kâğıt ve mürekkep);
+  ikisi de açık ya da koyu. Ayarlar (çark simgesi) › Görünüm'den seçilir; program yeni görünüm için yeniden açılır. Tema "Windows'a uy" iken
+  (varsayılan) program Windows'un uygulama modunu izler (Ayarlar › Kişiselleştirme › Renkler) ve modu değiştirdiğinizde, süren
+  bir şey kalmayınca kendini yeni modda yeniden başlatır.
+- **Şifreli birimler:** **Kilidi aç**, Mac'te kullandığınız parolayı ipucuyla birlikte sorar. Parola yalnız bilgisayardaki hizmete
+  gönderilir ve hiçbir yere kaydedilmez; yeniden başlatmadan sonra yeniden sorulur.
+
+<p align="center"><img src="docs/images/tr/designs.png" width="720" alt="Ana pencere Windows 11 tasarımında (üstte) ve Hashido tasarımında (altta), açık ve koyu"></p>
+<p align="center"><img src="docs/images/tr/password.png" width="400" alt="Şifreli Arşiv birimi için ipuçlu parola penceresi"></p>
 
 ## Dil
 Program Windows'un görüntü dilinde açılır (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, Brezilya Portekizcesi, İtalyanca,
@@ -65,6 +74,8 @@ Diskin **Yazmaya izin ver** düğmesine tıklayın ve uyarıyı onaylayın. Prog
 sürücü **yazılabilir** olarak yeniden bağlanır (birimin altında kırmızı "Yazılabilir (deneysel)"). Artık Gezgin'de dosya kopyalayabilir,
 klasör açabilir, adlandırabilir, silebilir ve dosyaları düzenleyip kaydedebilirsiniz. **Salt okunura dön** değişiklikleri kaydedip
 diski yeniden salt okunur bağlar.
+
+<p align="center"><img src="docs/images/tr/write.png" width="440" alt="Bu diske yazmaya izin verilsin mi? onayı ve deneysel özellik uyarıları"></p>
 
 - **Önce yedek alın.** Yazma özelliği yenidir; önemli dosyalarınızın bir kopyası olsun.
 - **Diski çıkarmadan veya Mac'e takmadan önce mutlaka "Güvenle çıkar"ı kullanın.** Değişiklikler birkaç saniyede bir kaydedilir;
@@ -185,22 +196,17 @@ olmadığını sorar. Size ya da disklerinize dair hiçbir şey gönderilmez; Gi
 **İletişim.** Sorular ve istekler: [GitHub Issues](https://github.com/ErsinZorba/Hashido/issues). Bu açıklamadaki
 değişiklikler depo geçmişinde görünür.
 
-## Geliştirme
+## Kaynaktan derleme
 ```
-dotnet build
-dotnet test
 powershell -File tools\build-installer.ps1   # kurulum sihirbazı: publish\Hashido-Setup-<sürüm>.exe
 ```
-`build-installer.ps1` için Inno Setup 6 (`winget install --id JRSoftware.InnoSetup -e`) ve `installer\redist\` altında WinFsp'in
-resmi `winfsp-2.1.25156.msi` paketi gerekir (git'e eklenmez; betik imzasını denetler). Yalnızca program klasörü için
-`tools\build-release.ps1` (`publish\APFS for Windows\`); onu sihirbazsız kurmak için yönetici PowerShell'de `install.ps1`.
-`install.ps1` ile kurulan sürüm "Yüklü uygulamalar"da görünmez (kaldırmak için `uninstall.ps1`); sihirbazla kurduysanız
-oradan kaldırın, `uninstall.ps1` kullanılırsa listede sahipsiz bir kayıt kalır.
-Test görüntüleri `tests/Apfs.ImageBuilder` ile üretilir ve bağımsız bir okuyucu olan 7-Zip ile karşılaştırılır
-(`tools/compare_with_7z.ps1`). Yazma desteği bağımsız hakemlerle sınanır: Linux'un APFS araçları (apfsprogs: `mkapfs`, `apfsck`;
-linux-apfs-rw sürücüsü) WSL içinde çalışır (`tools/make-linux-fixtures.sh`, `tools/make-linux-populated.sh`); macOS'un kendi
-denetleyicisi için `tools/mac/` (Mac kiti). Gerçek disk yolunu sanal diskte sınamak için `tools/vhd-write-test.ps1` (yönetici).
-Uzun testler: `APFS_LONG=1 dotnet test`.
+.NET 10 SDK, Inno Setup 6 (`winget install --id JRSoftware.InnoSetup -e`) ve `installer\redist\` altında WinFsp'in resmi
+`winfsp-2.1.25156.msi` paketi gerekir (git'e eklenmez; betik imzasını denetler). Yalnızca program klasörü için
+(`publish\APFS for Windows\`) `tools\build-release.ps1`. Programlar `src` altında (`Apfs.Core` okuyucu, `Apfs.Mount` WinFsp
+sürücüsü, `Apfs.Windows`, `Apfs.Service`, `Apfs.Tray`, `Apfs.Cli`); arayüz metinleri `src/Apfs.Core/Resources` ve
+`src/Apfs.Windows/Resources` içinde (`User.<dil>.resx`; teknik metinler `Tech.resx` yalnız İngilizce ve Türkçe).
+Okuma ve yazma bağımsız hakemlerle sınanır (7-Zip, Linux'un APFS araçları apfsprogs ve linux-apfs-rw, macOS'un kendi İlk Yardım'ı);
+testler ve geliştirme araçları bu depoda yer almaz.
 
 ## Ad
 Hashido (橋戸) Japoncada "köprü kapısı" demektir; gerçek bir soyadı ve yer adıdır: Mac diskinizle Windows arasında bir kapı.

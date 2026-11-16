@@ -140,6 +140,12 @@
   <data name="Consent.Yes" xml:space="preserve">
     <value>是，发送</value>
   </data>
+  <data name="Design.Brand" xml:space="preserve">
+    <value>Hashido</value>
+  </data>
+  <data name="Design.Windows" xml:space="preserve">
+    <value>Windows 11</value>
+  </data>
   <data name="Disk.Gone" xml:space="preserve">
     <value>此磁盘已不再连接。</value>
   </data>
@@ -180,7 +186,7 @@
     <value>正在连接…</value>
   </data>
   <data name="List.NoDiskBody" xml:space="preserve">
-    <value>请插入你的 Mac 磁盘；几秒钟内它就会显示在这里。磁盘会先以只读方式打开；如果想写入，请使用其卡片上的按钮另行允许。</value>
+    <value>请插入你的 Mac 磁盘；几秒钟内它就会显示在这里。磁盘会先以只读方式打开；如果想写入，请使用"允许写入"按钮另行允许。</value>
   </data>
   <data name="List.NoDiskHeading" xml:space="preserve">
     <value>尚无 Mac 磁盘</value>
@@ -209,6 +215,9 @@
   <data name="Notice.Detached" xml:space="preserve">
     <value>已卸载 {0} 的卷。此磁盘不显示为可移动设备；要重新装载，请使用 "重新扫描"。</value>
   </data>
+  <data name="Notice.DiskMounted" xml:space="preserve">
+    <value>{0}：已装载驱动器 {1}（只读）。</value>
+  </data>
   <data name="Notice.DiskUnreadable" xml:space="preserve">
     <value>无法读取 {0}：{1}</value>
   </data>
@@ -224,17 +233,11 @@
   <data name="Notice.MountedWritable" xml:space="preserve">
     <value>已将 "{0}" 以【可写】方式装载为驱动器 {1}（实验性）。移除磁盘前，请使用 "安全弹出"。</value>
   </data>
-  <data name="Notice.NeedsPassword" xml:space="preserve">
-    <value>卷 "{0}" 已加密。要打开它，请通过通知区域中的 APFS 图标输入密码。</value>
-  </data>
   <data name="Notice.RemountedReadOnly" xml:space="preserve">
     <value>已将 {0} 重新以只读方式装载；更改已保存。</value>
   </data>
   <data name="Notice.VolumeOpenFailed" xml:space="preserve">
     <value>{0}：无法打开卷 {1}。{2}</value>
-  </data>
-  <data name="Notice.WriteRefused" xml:space="preserve">
-    <value>未在 {0} 上启用写入。{1}</value>
   </data>
   <data name="Password.Hide" xml:space="preserve">
     <value>隐藏密码</value>
@@ -284,6 +287,18 @@
   <data name="Sent.Title" xml:space="preserve">
     <value>已发送的报告</value>
   </data>
+  <data name="Settings.AboutHeading" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Settings.AppearanceHeading" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="Settings.AppearanceNote" xml:space="preserve">
+    <value>新外观将在程序重新启动后生效。</value>
+  </data>
+  <data name="Settings.Design" xml:space="preserve">
+    <value>设计</value>
+  </data>
   <data name="Settings.Language" xml:space="preserve">
     <value>语言</value>
   </data>
@@ -299,6 +314,9 @@
   <data name="Settings.ShowSent" xml:space="preserve">
     <value>显示已发送的内容</value>
   </data>
+  <data name="Settings.Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
   <data name="Settings.Title" xml:space="preserve">
     <value>{0} 设置</value>
   </data>
@@ -310,6 +328,15 @@
   </data>
   <data name="Settings.WhatIsSent" xml:space="preserve">
     <value>会发送哪些内容？</value>
+  </data>
+  <data name="Theme.Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="Theme.Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Theme.System" xml:space="preserve">
+    <value>跟随 Windows</value>
   </data>
   <data name="Tray.MenuEject" xml:space="preserve">
     <value>{0}{1}：安全弹出</value>

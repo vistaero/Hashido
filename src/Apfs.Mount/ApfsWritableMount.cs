@@ -28,11 +28,15 @@ public sealed class ApfsWritableMount : IDisposable
     public string MountPoint { get; }
 
     /// <param name="closeSession">true ise ayırırken oturum da kapatılır (tek birimli kullanım); false ise oturumu çağıran kapatır.</param>
-    public static ApfsWritableMount Mount(WriteSession session, int volumeIndex, string? mountPoint, Action<string>? onError = null, bool closeSession = true)
+    /// <param name="onChangeLost">Değişiklik kaybı (<see cref="ApfsWritableFileSystem.ChangeLost"/>); verilmezse
+    /// <paramref name="onError"/>'a gider.</param>
+    public static ApfsWritableMount Mount(WriteSession session, int volumeIndex, string? mountPoint, Action<string>? onError = null, bool closeSession = true,
+        Action<string>? onChangeLost = null)
     {
         mountPoint ??= DriveLetterAllocator.GetFreeMountPoint();
         var fs = new ApfsWritableFileSystem(session, volumeIndex);
         if (onError is not null) fs.Error += onError;
+        if ((onChangeLost ?? onError) is { } lost) fs.ChangeLost += lost;
         var host = new FileSystemHost(fs);
         int status;
         try

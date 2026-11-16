@@ -48,14 +48,98 @@ public static class UserSettings
         set => Write(UpdateUrlValue, value);
     }
 
-    private static object? Read(string name)
+    private const string TrayHintShownValue = "TrayHintShown"; // DWORD 1; yok = gösterilmedi
+
+    /// <summary>
+    /// "Program tepside çalışmaya devam ediyor" ipucu gösterildi mi (1.6.3): kullanıcı başına bir kez, kalıcı (önceden her
+    /// oturumda ana pencerenin ilk kapatılışında çıkıyordu).
+    /// </summary>
+    public static bool TrayHintShown
+    {
+        get => ReadInt(TrayHintShownValue) is int v && v != 0;
+        set => Write(TrayHintShownValue, value ? 1 : null);
+    }
+
+    /// <summary>
+    /// Tepsinin tasarımı (1.6.0): sade Windows 11 (varsayılan, kullanıcı kararı 2026-11-15; 1.6.x'te marka) ya da 橋戸 marka.
+    /// Yalnız "brand" markadır; değer yoksa ya da bilinmiyorsa → Windows 11.
+    /// </summary>
+    public static AppDesign Design
+    {
+        get => ParseDesign(ReadString(DesignValue));
+        set => Write(DesignValue, value == AppDesign.Windows ? "windows" : "brand");
+    }
+
+    /// <summary>Tepsinin teması (1.6.0): Windows'a uy (varsayılan), açık ya da koyu. Bilinmeyen değer → Windows'a uy.</summary>
+    public static ThemeMode ThemeMode
+    {
+        get => ParseTheme(ReadString(ThemeValue));
+        set => Write(ThemeValue, value switch { ThemeMode.Light => "light", ThemeMode.Dark => "dark", _ => "system" });
+    }
+
+    /// <summary>
+    /// <see cref="Design"/>'ı okur; false = kayıt OKUNAMADI (değer yoksa true + varsayılan). Çalışırken tema yeniden başlaması
+    /// geçici bir okuma hatasını değişiklik saymasın diye (gidip gelen yeniden başlama).
+    /// </summary>
+    public static bool TryReadDesign(out AppDesign design)
+    {
+        bool ok = TryRead(DesignValue, out var v);
+        design = ParseDesign(v as string);
+        return ok;
+    }
+
+    /// <summary><see cref="ThemeMode"/>'u okur; false = kayıt okunamadı (bkz. <see cref="TryReadDesign"/>).</summary>
+    public static bool TryReadThemeMode(out ThemeMode mode)
+    {
+        bool ok = TryRead(ThemeValue, out var v);
+        mode = ParseTheme(v as string);
+        return ok;
+    }
+
+    private const string DesignValue = "Design"; // metin: "brand" | "windows"
+    private const string DesignDefaultValue = "DesignDefault"; // DWORD 2 = 1.6.2 varsayılan tasarım geçişi yapıldı
+
+    /// <summary>
+    /// 1.6.2 geçişi (kullanıcı kararı 2026-11-15), kullanıcı başına BİR KEZ: 1.6.0/1.6.1 Ayarlar'da tasarım ya da tema
+    /// değişince ikisini birlikte yazıyordu, kayıtlı "brand" bilinçli seçimden ayırt edilemiyor → bir kez Windows 11 yapılır ve
+    /// işaretlenir. Sonra Hashido'yu seçen markada kalır. Kayıt okunamazsa hiçbir şey yapılmaz (sonraki açılışta yeniden denenir).
+    /// Tepsi paleti ilk kez okumadan önce çağrılmalı.
+    /// </summary>
+    public static void MigrateDesignDefault()
+    {
+        if (!TryRead(DesignDefaultValue, out var done) || done is int) return;
+        if (!TryRead(DesignValue, out var design)) return;
+        if (design is string s && string.Equals(s.Trim(), "brand", StringComparison.OrdinalIgnoreCase)) Write(DesignValue, "windows");
+        Write(DesignDefaultValue, 2);
+    }
+    private const string ThemeValue = "Theme";   // metin: "system" | "light" | "dark"
+
+    private static AppDesign ParseDesign(string? s) =>
+        string.Equals(s?.Trim(), "brand", StringComparison.OrdinalIgnoreCase) ? AppDesign.Brand : AppDesign.Windows;
+
+    private static ThemeMode ParseTheme(string? s) => s?.Trim().ToLowerInvariant() switch
+    {
+        "light" => ThemeMode.Light,
+        "dark" => ThemeMode.Dark,
+        _ => ThemeMode.System,
+    };
+
+    private static object? Read(string name) => TryRead(name, out var v) ? v : null;
+
+    /// <summary>Değeri okur; false yalnız kayıt okunamadığında (yetki, G/Ç). Anahtar ya da değer yoksa true + null.</summary>
+    private static bool TryRead(string name, out object? value)
     {
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(LanguageSetting.KeyPath);
-            return key?.GetValue(name);
+            value = key?.GetValue(name);
+            return true;
         }
-        catch (Exception e) when (e is System.Security.SecurityException or UnauthorizedAccessException or IOException) { return null; }
+        catch (Exception e) when (e is System.Security.SecurityException or UnauthorizedAccessException or IOException)
+        {
+            value = null;
+            return false;
+        }
     }
 
     private static int? ReadInt(string name) => Read(name) is int v ? v : null;
@@ -73,3 +157,9 @@ public static class UserSettings
         catch (Exception e) when (e is System.Security.SecurityException or UnauthorizedAccessException or IOException) { }
     }
 }
+
+/// <summary>Tepsinin görünümü: 橋戸 marka ya da sade Windows 11 (renk, yazı tipi, düğme davranışı; yerleşim aynı).</summary>
+public enum AppDesign { Brand, Windows }
+
+/// <summary>Tepsinin teması: Windows'un uygulama modunu izle, ya da hep açık / hep koyu.</summary>
+public enum ThemeMode { System, Light, Dark }

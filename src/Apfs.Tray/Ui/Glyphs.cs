@@ -12,7 +12,7 @@ internal static class Glyphs
     public enum State { Open, Locked, Writable, Problem }
 
     /// <summary>Küçük çizgi ikonları.</summary>
-    public enum Icon { None, Refresh, Settings, Eject, Eye, EyeOff, Out }
+    public enum Icon { None, Refresh, Settings, Eject, Eye, EyeOff, Out, Warning, Info }
 
     /// <summary>Marka işareti (48'lik ızgara, çizgi 3,2). <paramref name="dashed"/>: hizmet kapalıyken kesik çizgi.</summary>
     public static void Mark(Graphics g, RectangleF r, Color color, bool dashed = false)
@@ -24,11 +24,14 @@ internal static class Glyphs
         Stroke(g, pen, Arch(12.5f, 35.5f, 26, 42), r.X, r.Y, k);
     }
 
-    /// <summary>Durum işareti (24'lük ızgara, çizgi 1,6). Açık ve kilitli mürekkep, yazılabilir ve sorunlu zinober.</summary>
+    /// <summary>
+    /// Durum işareti (24'lük ızgara, çizgi 1,6). Açık ve kilitli mürekkep, yazılabilir <see cref="Theme.WritableMark"/>,
+    /// sorunlu <see cref="Theme.Alert"/> (markada ikisi de zinober).
+    /// </summary>
     public static void Status(Graphics g, RectangleF r, State state)
     {
         float k = Math.Min(r.Width, r.Height) / 24f;
-        Color color = state is State.Writable or State.Problem ? Theme.Shu : Theme.Ink;
+        Color color = state switch { State.Writable => Theme.WritableMark, State.Problem => Theme.Alert, _ => Theme.Ink };
         using var pen = new Pen(color, 1.6f * k) { StartCap = LineCap.Flat, EndCap = LineCap.Flat, LineJoin = LineJoin.Miter };
         if (state == State.Problem) pen.DashPattern = [3f / 1.6f, 2.4f / 1.6f];
         Stroke(g, pen, Deck(2, 4.6f, 12, 2.2f, 22, 4.6f), r.X, r.Y, k);
@@ -64,13 +67,20 @@ internal static class Glyphs
                 p.AddLines([new PointF(13.5f, 2), new PointF(13.5f, 5), new PointF(10.5f, 5)]);
                 break;
             case Icon.Settings:
+                // Çark: 8 diş (dış yarıçap 6,6, kök 4,9; diş üstü dar, kökü geniş) + ortada delik. Eski daire + ışınlar
+                // güneşe (tema düğmesine) benziyordu.
+                var gear = new PointF[8 * 4];
+                for (int i = 0; i < 8; i++)
+                {
+                    double a = -Math.PI / 2 + i * Math.PI / 4;
+                    PointF At(double angle, float radius) => new(8 + radius * (float)Math.Cos(angle), 8 + radius * (float)Math.Sin(angle));
+                    gear[i * 4] = At(a - 0.24, 4.9f);
+                    gear[i * 4 + 1] = At(a - 0.17, 6.6f);
+                    gear[i * 4 + 2] = At(a + 0.17, 6.6f);
+                    gear[i * 4 + 3] = At(a + 0.24, 4.9f);
+                }
+                p.AddPolygon(gear);
                 p.AddEllipse(5.8f, 5.8f, 4.4f, 4.4f);
-                (float, float, float, float)[] spokes =
-                [
-                    (8, 1.5f, 8, 3.5f), (8, 12.5f, 8, 14.5f), (1.5f, 8, 3.5f, 8), (12.5f, 8, 14.5f, 8),
-                    (3.4f, 3.4f, 4.8f, 4.8f), (11.2f, 11.2f, 12.6f, 12.6f), (3.4f, 12.6f, 4.8f, 11.2f), (11.2f, 4.8f, 12.6f, 3.4f),
-                ];
-                foreach (var (x1, y1, x2, y2) in spokes) { p.StartFigure(); p.AddLine(x1, y1, x2, y2); }
                 break;
             case Icon.Eject:
                 p.AddPolygon([new PointF(8, 3.5f), new PointF(3.5f, 9), new PointF(12.5f, 9)]);
@@ -93,6 +103,20 @@ internal static class Glyphs
                 p.AddLine(13.5f, 2.5f, 8, 8);
                 p.StartFigure();
                 p.AddLines([new PointF(11.5f, 9.5f), new PointF(11.5f, 13.5f), new PointF(2.5f, 13.5f), new PointF(2.5f, 4.5f), new PointF(6.5f, 4.5f)]);
+                break;
+            case Icon.Warning: // iletişim kutusu (1.6.0): üçgen + ünlem
+                p.AddPolygon([new PointF(8, 2), new PointF(14.5f, 13.5f), new PointF(1.5f, 13.5f)]);
+                p.StartFigure();
+                p.AddLine(8, 6.2f, 8, 9.4f);
+                p.StartFigure();
+                p.AddLine(8, 11.4f, 8, 11.5f); // nokta: yuvarlak uçlu kısa çizgi
+                break;
+            case Icon.Info: // iletişim kutusu (1.6.0): daire + "i"
+                p.AddEllipse(1.5f, 1.5f, 13, 13);
+                p.StartFigure();
+                p.AddLine(8, 7.4f, 8, 11.5f);
+                p.StartFigure();
+                p.AddLine(8, 4.9f, 8, 5f);
                 break;
         }
         Stroke(g, pen, p, r.X, r.Y, k);

@@ -140,6 +140,12 @@
   <data name="Consent.Yes" xml:space="preserve">
     <value>Oui, envoyer</value>
   </data>
+  <data name="Design.Brand" xml:space="preserve">
+    <value>Hashido</value>
+  </data>
+  <data name="Design.Windows" xml:space="preserve">
+    <value>Windows 11</value>
+  </data>
   <data name="Disk.Gone" xml:space="preserve">
     <value>Ce disque n'est plus connecté.</value>
   </data>
@@ -180,7 +186,7 @@
     <value>Connexion…</value>
   </data>
   <data name="List.NoDiskBody" xml:space="preserve">
-    <value>Branchez votre disque Mac ; il apparaîtra ici en quelques secondes. Votre disque s'ouvre d'abord en lecture seule ; si vous souhaitez y écrire, vous l'autorisez séparément avec le bouton de sa carte.</value>
+    <value>Branchez votre disque Mac ; il apparaîtra ici en quelques secondes. Votre disque s'ouvre d'abord en lecture seule ; si vous souhaitez y écrire, vous l'autorisez séparément avec le bouton "Autoriser l'écriture".</value>
   </data>
   <data name="List.NoDiskHeading" xml:space="preserve">
     <value>Aucun disque Mac pour l'instant</value>
@@ -209,6 +215,9 @@
   <data name="Notice.Detached" xml:space="preserve">
     <value>Les volumes de {0} ont été démontés. Ce disque n'apparaît pas comme un périphérique amovible ; pour le monter à nouveau, utilisez "Analyser à nouveau".</value>
   </data>
+  <data name="Notice.DiskMounted" xml:space="preserve">
+    <value>{0} : les lecteurs {1} ont été montés (lecture seule).</value>
+  </data>
   <data name="Notice.DiskUnreadable" xml:space="preserve">
     <value>Impossible de lire {0} : {1}</value>
   </data>
@@ -224,17 +233,11 @@
   <data name="Notice.MountedWritable" xml:space="preserve">
     <value>"{0}" a été monté en tant que lecteur {1} AVEC ÉCRITURE (expérimental). Utilisez "Éjecter sans risque" avant de retirer le disque.</value>
   </data>
-  <data name="Notice.NeedsPassword" xml:space="preserve">
-    <value>Le volume "{0}" est chiffré. Pour l'ouvrir, saisissez le mot de passe depuis l'icône APFS de la zone de notification.</value>
-  </data>
   <data name="Notice.RemountedReadOnly" xml:space="preserve">
     <value>{0} a été remonté en lecture seule ; les modifications ont été enregistrées.</value>
   </data>
   <data name="Notice.VolumeOpenFailed" xml:space="preserve">
     <value>{0} : impossible d'ouvrir le volume {1}. {2}</value>
-  </data>
-  <data name="Notice.WriteRefused" xml:space="preserve">
-    <value>L'écriture n'a pas été activée sur {0}. {1}</value>
   </data>
   <data name="Password.Hide" xml:space="preserve">
     <value>Masquer le mot de passe</value>
@@ -284,6 +287,18 @@
   <data name="Sent.Title" xml:space="preserve">
     <value>Rapports envoyés</value>
   </data>
+  <data name="Settings.AboutHeading" xml:space="preserve">
+    <value>À propos</value>
+  </data>
+  <data name="Settings.AppearanceHeading" xml:space="preserve">
+    <value>Apparence</value>
+  </data>
+  <data name="Settings.AppearanceNote" xml:space="preserve">
+    <value>La nouvelle apparence s'applique au redémarrage du programme.</value>
+  </data>
+  <data name="Settings.Design" xml:space="preserve">
+    <value>Style</value>
+  </data>
   <data name="Settings.Language" xml:space="preserve">
     <value>Langue</value>
   </data>
@@ -299,6 +314,9 @@
   <data name="Settings.ShowSent" xml:space="preserve">
     <value>Afficher ce qui a été envoyé</value>
   </data>
+  <data name="Settings.Theme" xml:space="preserve">
+    <value>Thème</value>
+  </data>
   <data name="Settings.Title" xml:space="preserve">
     <value>Paramètres de {0}</value>
   </data>
@@ -310,6 +328,15 @@
   </data>
   <data name="Settings.WhatIsSent" xml:space="preserve">
     <value>Qu'est-ce qui est envoyé ?</value>
+  </data>
+  <data name="Theme.Dark" xml:space="preserve">
+    <value>Sombre</value>
+  </data>
+  <data name="Theme.Light" xml:space="preserve">
+    <value>Clair</value>
+  </data>
+  <data name="Theme.System" xml:space="preserve">
+    <value>Comme Windows</value>
   </data>
   <data name="Tray.MenuEject" xml:space="preserve">
     <value>{0}{1} : éjecter sans risque</value>

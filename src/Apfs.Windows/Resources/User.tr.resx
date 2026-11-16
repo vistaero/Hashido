@@ -140,6 +140,12 @@
   <data name="Consent.Yes" xml:space="preserve">
     <value>Evet, gönder</value>
   </data>
+  <data name="Design.Brand" xml:space="preserve">
+    <value>Hashido</value>
+  </data>
+  <data name="Design.Windows" xml:space="preserve">
+    <value>Windows 11</value>
+  </data>
   <data name="Disk.Gone" xml:space="preserve">
     <value>Bu disk artık takılı değil.</value>
   </data>
@@ -180,7 +186,7 @@
     <value>Bağlanıyor…</value>
   </data>
   <data name="List.NoDiskBody" xml:space="preserve">
-    <value>Mac diskinizi takın; birkaç saniye içinde burada görünür. Diskiniz önce salt okunur açılır; yazmak isterseniz kartındaki düğmeyle ayrıca izin verirsiniz.</value>
+    <value>Mac diskinizi takın; birkaç saniye içinde burada görünür. Diskiniz önce salt okunur açılır; yazmak isterseniz "Yazmaya izin ver" düğmesiyle ayrıca izin verirsiniz.</value>
   </data>
   <data name="List.NoDiskHeading" xml:space="preserve">
     <value>Henüz bir Mac diski yok</value>
@@ -209,6 +215,9 @@
   <data name="Notice.Detached" xml:space="preserve">
     <value>{0} birimleri ayrıldı. Bu disk çıkarılabilir bir aygıt olarak görünmüyor; yeniden bağlamak için "Yeniden tara".</value>
   </data>
+  <data name="Notice.DiskMounted" xml:space="preserve">
+    <value>{0}: {1} sürücüleri bağlandı (salt okunur).</value>
+  </data>
   <data name="Notice.DiskUnreadable" xml:space="preserve">
     <value>{0} okunamadı: {1}</value>
   </data>
@@ -224,17 +233,11 @@
   <data name="Notice.MountedWritable" xml:space="preserve">
     <value>"{0}" {1} sürücüsü YAZILABİLİR olarak bağlandı (deneysel). Diski çıkarmadan önce "Güvenle çıkar"ı kullanın.</value>
   </data>
-  <data name="Notice.NeedsPassword" xml:space="preserve">
-    <value>"{0}" birimi şifreli. Açmak için tepsideki APFS simgesinden parolayı girin.</value>
-  </data>
   <data name="Notice.RemountedReadOnly" xml:space="preserve">
     <value>{0} salt okunur olarak yeniden bağlandı; değişiklikler kaydedildi.</value>
   </data>
   <data name="Notice.VolumeOpenFailed" xml:space="preserve">
     <value>{0}: birim {1} açılamadı. {2}</value>
-  </data>
-  <data name="Notice.WriteRefused" xml:space="preserve">
-    <value>{0} yazmaya açılmadı. {1}</value>
   </data>
   <data name="Password.Hide" xml:space="preserve">
     <value>Parolayı gizle</value>
@@ -284,6 +287,18 @@
   <data name="Sent.Title" xml:space="preserve">
     <value>Gönderilen raporlar</value>
   </data>
+  <data name="Settings.AboutHeading" xml:space="preserve">
+    <value>Hakkında</value>
+  </data>
+  <data name="Settings.AppearanceHeading" xml:space="preserve">
+    <value>Görünüm</value>
+  </data>
+  <data name="Settings.AppearanceNote" xml:space="preserve">
+    <value>Yeni görünüm için program yeniden açılır.</value>
+  </data>
+  <data name="Settings.Design" xml:space="preserve">
+    <value>Tasarım</value>
+  </data>
   <data name="Settings.Language" xml:space="preserve">
     <value>Dil</value>
   </data>
@@ -299,6 +314,9 @@
   <data name="Settings.ShowSent" xml:space="preserve">
     <value>Gönderilenleri göster</value>
   </data>
+  <data name="Settings.Theme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
   <data name="Settings.Title" xml:space="preserve">
     <value>{0} ayarları</value>
   </data>
@@ -310,6 +328,15 @@
   </data>
   <data name="Settings.WhatIsSent" xml:space="preserve">
     <value>Ne gönderiliyor?</value>
+  </data>
+  <data name="Theme.Dark" xml:space="preserve">
+    <value>Koyu</value>
+  </data>
+  <data name="Theme.Light" xml:space="preserve">
+    <value>Açık</value>
+  </data>
+  <data name="Theme.System" xml:space="preserve">
+    <value>Windows'a uy</value>
   </data>
   <data name="Tray.MenuEject" xml:space="preserve">
     <value>{0}{1}: güvenle çıkar</value>

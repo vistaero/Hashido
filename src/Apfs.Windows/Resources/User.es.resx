@@ -140,6 +140,12 @@
   <data name="Consent.Yes" xml:space="preserve">
     <value>Sí, enviar</value>
   </data>
+  <data name="Design.Brand" xml:space="preserve">
+    <value>Hashido</value>
+  </data>
+  <data name="Design.Windows" xml:space="preserve">
+    <value>Windows 11</value>
+  </data>
   <data name="Disk.Gone" xml:space="preserve">
     <value>Este disco ya no está conectado.</value>
   </data>
@@ -180,7 +186,7 @@
     <value>Conectando…</value>
   </data>
   <data name="List.NoDiskBody" xml:space="preserve">
-    <value>Conecte su disco de Mac; aparecerá aquí en unos segundos. El disco se abre primero en modo de solo lectura; si quiere escribir en él, puede permitirlo por separado con el botón de su tarjeta.</value>
+    <value>Conecte su disco de Mac; aparecerá aquí en unos segundos. El disco se abre primero en modo de solo lectura; si quiere escribir en él, puede permitirlo por separado con el botón "Permitir escritura".</value>
   </data>
   <data name="List.NoDiskHeading" xml:space="preserve">
     <value>Aún no hay ningún disco de Mac</value>
@@ -209,6 +215,9 @@
   <data name="Notice.Detached" xml:space="preserve">
     <value>Se desmontaron los volúmenes de {0}. Este disco no aparece como dispositivo extraíble; para volver a montarlo, use "Volver a buscar".</value>
   </data>
+  <data name="Notice.DiskMounted" xml:space="preserve">
+    <value>{0}: se montaron las unidades {1} (solo lectura).</value>
+  </data>
   <data name="Notice.DiskUnreadable" xml:space="preserve">
     <value>No se pudo leer {0}: {1}</value>
   </data>
@@ -224,17 +233,11 @@
   <data name="Notice.MountedWritable" xml:space="preserve">
     <value>"{0}" se montó como unidad {1} CON ESCRITURA (experimental). Use "Expulsar con seguridad" antes de retirar el disco.</value>
   </data>
-  <data name="Notice.NeedsPassword" xml:space="preserve">
-    <value>El volumen "{0}" está cifrado. Para abrirlo, escriba la contraseña desde el icono de APFS del área de notificación.</value>
-  </data>
   <data name="Notice.RemountedReadOnly" xml:space="preserve">
     <value>{0} se volvió a montar en modo de solo lectura; los cambios se guardaron.</value>
   </data>
   <data name="Notice.VolumeOpenFailed" xml:space="preserve">
     <value>{0}: no se pudo abrir el volumen {1}. {2}</value>
-  </data>
-  <data name="Notice.WriteRefused" xml:space="preserve">
-    <value>No se habilitó la escritura en {0}. {1}</value>
   </data>
   <data name="Password.Hide" xml:space="preserve">
     <value>Ocultar la contraseña</value>
@@ -284,6 +287,18 @@
   <data name="Sent.Title" xml:space="preserve">
     <value>Informes enviados</value>
   </data>
+  <data name="Settings.AboutHeading" xml:space="preserve">
+    <value>Acerca de</value>
+  </data>
+  <data name="Settings.AppearanceHeading" xml:space="preserve">
+    <value>Apariencia</value>
+  </data>
+  <data name="Settings.AppearanceNote" xml:space="preserve">
+    <value>La nueva apariencia se aplicará cuando se reinicie el programa.</value>
+  </data>
+  <data name="Settings.Design" xml:space="preserve">
+    <value>Diseño</value>
+  </data>
   <data name="Settings.Language" xml:space="preserve">
     <value>Idioma</value>
   </data>
@@ -299,6 +314,9 @@
   <data name="Settings.ShowSent" xml:space="preserve">
     <value>Mostrar lo enviado</value>
   </data>
+  <data name="Settings.Theme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
   <data name="Settings.Title" xml:space="preserve">
     <value>Configuración de {0}</value>
   </data>
@@ -310,6 +328,15 @@
   </data>
   <data name="Settings.WhatIsSent" xml:space="preserve">
     <value>¿Qué se envía?</value>
+  </data>
+  <data name="Theme.Dark" xml:space="preserve">
+    <value>Oscuro</value>
+  </data>
+  <data name="Theme.Light" xml:space="preserve">
+    <value>Claro</value>
+  </data>
+  <data name="Theme.System" xml:space="preserve">
+    <value>Igual que Windows</value>
   </data>
   <data name="Tray.MenuEject" xml:space="preserve">
     <value>{0}{1}: expulsar con seguridad</value>

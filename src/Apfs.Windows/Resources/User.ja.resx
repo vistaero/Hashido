@@ -140,6 +140,12 @@
   <data name="Consent.Yes" xml:space="preserve">
     <value>はい、送信する</value>
   </data>
+  <data name="Design.Brand" xml:space="preserve">
+    <value>Hashido</value>
+  </data>
+  <data name="Design.Windows" xml:space="preserve">
+    <value>Windows 11</value>
+  </data>
   <data name="Disk.Gone" xml:space="preserve">
     <value>このディスクはもう接続されていません。</value>
   </data>
@@ -180,7 +186,7 @@
     <value>接続しています…</value>
   </data>
   <data name="List.NoDiskBody" xml:space="preserve">
-    <value>Mac のディスクを接続してください。数秒以内にここに表示されます。ディスクはまず読み取り専用で開かれます。書き込みたい場合は、ディスクのカードにあるボタンで別途許可してください。</value>
+    <value>Mac のディスクを接続してください。数秒以内にここに表示されます。ディスクはまず読み取り専用で開かれます。書き込みたい場合は、"書き込みを許可" ボタンで別途許可してください。</value>
   </data>
   <data name="List.NoDiskHeading" xml:space="preserve">
     <value>Mac のディスクはまだありません</value>
@@ -209,6 +215,9 @@
   <data name="Notice.Detached" xml:space="preserve">
     <value>{0} のボリュームのマウントを解除しました。このディスクはリムーバブル デバイスとして表示されないため、再度マウントするには "再スキャン" を使用してください。</value>
   </data>
+  <data name="Notice.DiskMounted" xml:space="preserve">
+    <value>{0}：ドライブ {1} をマウントしました（読み取り専用）。</value>
+  </data>
   <data name="Notice.DiskUnreadable" xml:space="preserve">
     <value>{0} を読み取れませんでした：{1}</value>
   </data>
@@ -224,17 +233,11 @@
   <data name="Notice.MountedWritable" xml:space="preserve">
     <value>"{0}" を【書き込み可能】な状態でドライブ {1} としてマウントしました（試験的）。ディスクを取り外す前に "安全に取り出す" を使用してください。</value>
   </data>
-  <data name="Notice.NeedsPassword" xml:space="preserve">
-    <value>ボリューム "{0}" は暗号化されています。開くには、通知領域の APFS アイコンからパスワードを入力してください。</value>
-  </data>
   <data name="Notice.RemountedReadOnly" xml:space="preserve">
     <value>{0} を読み取り専用で再マウントしました。変更は保存されました。</value>
   </data>
   <data name="Notice.VolumeOpenFailed" xml:space="preserve">
     <value>{0}：ボリューム {1} を開けませんでした。{2}</value>
-  </data>
-  <data name="Notice.WriteRefused" xml:space="preserve">
-    <value>{0} では書き込みが有効になりませんでした。{1}</value>
   </data>
   <data name="Password.Hide" xml:space="preserve">
     <value>パスワードを隠す</value>
@@ -284,6 +287,18 @@
   <data name="Sent.Title" xml:space="preserve">
     <value>送信したレポート</value>
   </data>
+  <data name="Settings.AboutHeading" xml:space="preserve">
+    <value>バージョン情報</value>
+  </data>
+  <data name="Settings.AppearanceHeading" xml:space="preserve">
+    <value>外観</value>
+  </data>
+  <data name="Settings.AppearanceNote" xml:space="preserve">
+    <value>新しい外観は、プログラムを再起動すると反映されます。</value>
+  </data>
+  <data name="Settings.Design" xml:space="preserve">
+    <value>デザイン</value>
+  </data>
   <data name="Settings.Language" xml:space="preserve">
     <value>言語</value>
   </data>
@@ -299,6 +314,9 @@
   <data name="Settings.ShowSent" xml:space="preserve">
     <value>送信した内容を表示</value>
   </data>
+  <data name="Settings.Theme" xml:space="preserve">
+    <value>テーマ</value>
+  </data>
   <data name="Settings.Title" xml:space="preserve">
     <value>{0} の設定</value>
   </data>
@@ -310,6 +328,15 @@
   </data>
   <data name="Settings.WhatIsSent" xml:space="preserve">
     <value>何が送信されますか？</value>
+  </data>
+  <data name="Theme.Dark" xml:space="preserve">
+    <value>ダーク</value>
+  </data>
+  <data name="Theme.Light" xml:space="preserve">
+    <value>ライト</value>
+  </data>
+  <data name="Theme.System" xml:space="preserve">
+    <value>Windows に合わせる</value>
   </data>
   <data name="Tray.MenuEject" xml:space="preserve">
     <value>{0}{1}：安全に取り出す</value>

@@ -140,6 +140,12 @@
   <data name="Consent.Yes" xml:space="preserve">
     <value>Ja, senden</value>
   </data>
+  <data name="Design.Brand" xml:space="preserve">
+    <value>Hashido</value>
+  </data>
+  <data name="Design.Windows" xml:space="preserve">
+    <value>Windows 11</value>
+  </data>
   <data name="Disk.Gone" xml:space="preserve">
     <value>Dieser Datenträger ist nicht mehr angeschlossen.</value>
   </data>
@@ -180,7 +186,7 @@
     <value>Verbindung wird hergestellt…</value>
   </data>
   <data name="List.NoDiskBody" xml:space="preserve">
-    <value>Schließen Sie Ihren Mac-Datenträger an; er erscheint innerhalb weniger Sekunden hier. Ihr Datenträger wird zunächst schreibgeschützt geöffnet; wenn Sie darauf schreiben möchten, erlauben Sie das separat über die Schaltfläche auf seiner Karte.</value>
+    <value>Schließen Sie Ihren Mac-Datenträger an; er erscheint innerhalb weniger Sekunden hier. Ihr Datenträger wird zunächst schreibgeschützt geöffnet; wenn Sie darauf schreiben möchten, erlauben Sie das separat über die Schaltfläche "Schreiben erlauben".</value>
   </data>
   <data name="List.NoDiskHeading" xml:space="preserve">
     <value>Noch kein Mac-Datenträger</value>
@@ -209,6 +215,9 @@
   <data name="Notice.Detached" xml:space="preserve">
     <value>Die Volumes von {0} wurden getrennt. Dieser Datenträger wird nicht als Wechselmedium angezeigt; um ihn erneut einzubinden, verwenden Sie "Erneut scannen".</value>
   </data>
+  <data name="Notice.DiskMounted" xml:space="preserve">
+    <value>{0}: Die Laufwerke {1} wurden eingebunden (schreibgeschützt).</value>
+  </data>
   <data name="Notice.DiskUnreadable" xml:space="preserve">
     <value>{0} konnte nicht gelesen werden: {1}</value>
   </data>
@@ -224,17 +233,11 @@
   <data name="Notice.MountedWritable" xml:space="preserve">
     <value>"{0}" wurde MIT SCHREIBZUGRIFF als Laufwerk {1} eingebunden (experimentell). Verwenden Sie "Sicher auswerfen", bevor Sie den Datenträger entfernen.</value>
   </data>
-  <data name="Notice.NeedsPassword" xml:space="preserve">
-    <value>Das Volume "{0}" ist verschlüsselt. Um es zu öffnen, geben Sie das Passwort über das APFS-Symbol im Infobereich ein.</value>
-  </data>
   <data name="Notice.RemountedReadOnly" xml:space="preserve">
     <value>{0} wurde wieder schreibgeschützt eingebunden; die Änderungen wurden gespeichert.</value>
   </data>
   <data name="Notice.VolumeOpenFailed" xml:space="preserve">
     <value>{0}: Volume {1} konnte nicht geöffnet werden. {2}</value>
-  </data>
-  <data name="Notice.WriteRefused" xml:space="preserve">
-    <value>Das Schreiben auf {0} wurde nicht aktiviert. {1}</value>
   </data>
   <data name="Password.Hide" xml:space="preserve">
     <value>Passwort ausblenden</value>
@@ -284,6 +287,18 @@
   <data name="Sent.Title" xml:space="preserve">
     <value>Gesendete Berichte</value>
   </data>
+  <data name="Settings.AboutHeading" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="Settings.AppearanceHeading" xml:space="preserve">
+    <value>Darstellung</value>
+  </data>
+  <data name="Settings.AppearanceNote" xml:space="preserve">
+    <value>Eine neue Darstellung gilt nach einem Neustart des Programms.</value>
+  </data>
+  <data name="Settings.Design" xml:space="preserve">
+    <value>Design</value>
+  </data>
   <data name="Settings.Language" xml:space="preserve">
     <value>Sprache</value>
   </data>
@@ -299,6 +314,9 @@
   <data name="Settings.ShowSent" xml:space="preserve">
     <value>Gesendete Berichte anzeigen</value>
   </data>
+  <data name="Settings.Theme" xml:space="preserve">
+    <value>Farbmodus</value>
+  </data>
   <data name="Settings.Title" xml:space="preserve">
     <value>{0} – Einstellungen</value>
   </data>
@@ -310,6 +328,15 @@
   </data>
   <data name="Settings.WhatIsSent" xml:space="preserve">
     <value>Was wird gesendet?</value>
+  </data>
+  <data name="Theme.Dark" xml:space="preserve">
+    <value>Dunkel</value>
+  </data>
+  <data name="Theme.Light" xml:space="preserve">
+    <value>Hell</value>
+  </data>
+  <data name="Theme.System" xml:space="preserve">
+    <value>Wie Windows</value>
   </data>
   <data name="Tray.MenuEject" xml:space="preserve">
     <value>{0}{1}: sicher auswerfen</value>

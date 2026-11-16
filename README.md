@@ -11,6 +11,8 @@ Plug the disk in and within a few seconds it shows up in File Explorer with a dr
 > a disk, you allow it separately for that disk with its **Allow writing** button (experimental; see "Writing").
 > The safety of your data comes first.
 
+<p align="center"><img src="docs/images/en/main.png" width="440" alt="Hashido main window with three Mac disks: Photos (read-only), Archive (encrypted, locked) and Projects (writable)"></p>
+
 ## What is supported
 | | |
 |---|---|
@@ -25,7 +27,7 @@ Plug the disk in and within a few seconds it shows up in File Explorer with a dr
 | 10 interface languages | English, Türkçe, Deutsch, Français, Español, Português (Brasil), Italiano, 日本語, 简体中文, 한국어 |
 
 ## Installation
-Run `Hashido-Setup-1.5.0.exe` and follow the wizard (Next › Install › Finish). Windows 10/11 (64-bit) is all you need;
+Run `Hashido-Setup-1.6.5.exe` and follow the wizard (Next › Install › Finish). Windows 10/11 (64-bit) is all you need;
 nothing else has to be installed: .NET comes with the program, and if the [WinFsp](https://winfsp.dev) driver is missing the wizard
 installs it too. After installation, **Hashido** is in the Start menu and the tray icon starts automatically at every sign-in.
 
@@ -37,7 +39,7 @@ installs it too. After installation, **Hashido** is in the Start menu and the tr
 To uninstall: **Settings › Apps › Installed apps › Hashido › Uninstall**. Uninstalling writes nothing to your disks;
 the log (`C:\ProgramData\APFS for Windows\log.txt`) is kept for you to inspect, and WinFsp is not removed. Unsent reports and
 the list of sent ones (`C:\ProgramData\APFS for Windows\reports`, `%LOCALAPPDATA%\APFS for Windows\reports`) and your answer to the
-automatic-reports question are deleted, so a reinstall asks again; your language and update-notification settings are kept.
+automatic-reports question are deleted, so a reinstall asks again; your language, appearance and update-notification settings are kept.
 
 ## Usage
 - **Main window** (Start menu, or "Open main window" in the tray menu): each attached Mac disk is listed with its name and
@@ -47,8 +49,15 @@ automatic-reports question are deleted, so a reinstall asks again; your language
   close the program; the disks stay mounted and the program keeps running in the notification area.
 - **Tray panel**: left-click the Hashido icon (the red seal) next to the clock; the same actions in a small panel. The right-click
   menu has "Open main window", "safely eject" for each disk, "Scan again", "Open log" and "Exit".
-- **Light and dark:** the program follows Windows' app mode (Settings › Personalization › Colors). When you switch it, the program
+- **Appearance:** two designs, Windows 11 (Windows' own look and accent color; the default) and Hashido (paper and ink), each light
+  or dark. Choose them under Settings (the gear icon) › Appearance; the program restarts to apply them. With the theme set to "Match
+  Windows" (the default), the program follows Windows' app mode (Settings › Personalization › Colors) and, when you switch it,
   restarts itself in the new mode as soon as nothing is in progress.
+- **Encrypted volumes:** **Unlock** asks for the password you use on the Mac, with its hint. The password is sent only to the
+  local service and is never saved; it is asked again after a restart.
+
+<p align="center"><img src="docs/images/en/designs.png" width="720" alt="The main window in the Windows 11 design (top) and the Hashido design (bottom), light and dark"></p>
+<p align="center"><img src="docs/images/en/password.png" width="400" alt="Password window for the encrypted volume Archive, with its hint"></p>
 
 ## Language
 The program starts in the Windows display language (English, Turkish, German, French, Spanish, Brazilian Portuguese, Italian,
@@ -66,6 +75,8 @@ Click the disk's **Allow writing** button and confirm the warning. The program f
 order, the drive is mounted again as **writable** ("Writable (experimental)" in red under the volume). You can now copy files, create
 folders, rename, delete, and edit and save files in File Explorer. **Back to read-only** saves the changes and mounts the disk
 read-only again.
+
+<p align="center"><img src="docs/images/en/write.png" width="440" alt="Allow writing to this disk? confirmation with the experimental-feature warnings"></p>
 
 - **Make a backup first.** Writing is new; keep a copy of your important files.
 - **Always use "Safely eject" before unplugging the disk or connecting it to a Mac.** Changes are saved every few seconds;
@@ -189,23 +200,17 @@ version exists. Nothing about you or your disks is sent; GitHub sees the request
 **Contact.** Questions and requests: [GitHub Issues](https://github.com/ErsinZorba/Hashido/issues). Changes to this
 statement are visible in the repository history.
 
-## Development
+## Building from source
 ```
-dotnet build
-dotnet test
 powershell -File tools\build-installer.ps1   # setup wizard: publish\Hashido-Setup-<version>.exe
 ```
-`build-installer.ps1` needs Inno Setup 6 (`winget install --id JRSoftware.InnoSetup -e`) and WinFsp's official
+Needs the .NET 10 SDK, Inno Setup 6 (`winget install --id JRSoftware.InnoSetup -e`) and WinFsp's official
 `winfsp-2.1.25156.msi` package under `installer\redist\` (not added to git; the script checks its signature). For the program folder
-only, `tools\build-release.ps1` (`publish\APFS for Windows\`); to install that without the wizard, `install.ps1` in an
-administrator PowerShell. A version installed with `install.ps1` does not appear in "Installed apps" (remove it with
-`uninstall.ps1`); if you installed with the wizard, uninstall from there — using `uninstall.ps1` leaves an orphaned entry in the list.
-Test images are produced with `tests/Apfs.ImageBuilder` and compared with an independent reader, 7-Zip
-(`tools/compare_with_7z.ps1`). Writing is tested against independent referees: Linux's APFS tools (apfsprogs: `mkapfs`, `apfsck`;
-the linux-apfs-rw driver) run inside WSL (`tools/make-linux-fixtures.sh`, `tools/make-linux-populated.sh`); for macOS's own checker,
-`tools/mac/` (Mac kit). To test the real disk path on a virtual disk, `tools/vhd-write-test.ps1` (administrator).
-Interface texts: `src/Apfs.Core/Resources` and `src/Apfs.Windows/Resources` (`User.<language>.resx`; technical texts `Tech.resx`
-in English and Turkish only). Long tests: `APFS_LONG=1 dotnet test`.
+only (`publish\APFS for Windows\`), `tools\build-release.ps1`. The programs are in `src` (`Apfs.Core` reader, `Apfs.Mount`
+WinFsp drive, `Apfs.Windows`, `Apfs.Service`, `Apfs.Tray`, `Apfs.Cli`); interface texts are in `src/Apfs.Core/Resources` and
+`src/Apfs.Windows/Resources` (`User.<language>.resx`; technical texts `Tech.resx` in English and Turkish only).
+Reading and writing are tested against independent referees (7-Zip, Linux's APFS tools apfsprogs and linux-apfs-rw, and macOS's
+own First Aid); the tests and development tools are not part of this repository.
 
 ## The name
 Hashido (橋戸) is Japanese for "bridge gate", a real family and place name: a gate between your Mac disk and Windows.
