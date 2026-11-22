@@ -17,7 +17,8 @@ public readonly record struct WriteStats(long Commits, long Bytes, long Operatio
 /// değişmeden kalır; bu sınıf yalnızca yazma kapısından geçmiş bir oturumla kurulur.
 /// <list type="bullet">
 /// <item>Okumalar oturumun güncel görüntüsünden (<see cref="VolumeWriter.View"/>), değişiklikler <see cref="VolumeWriter"/>'dan.</item>
-/// <item>Bütün çağrılar tek kilit altında (yazıcı iş parçacığı güvenli değildir).</item>
+/// <item>Bütün çağrılar OTURUMUN kilidi (<see cref="WriteSession.SyncRoot"/>) altında: yazıcı iş parçacığı güvenli değildir ve
+/// aynı oturumu (aynı kapsayıcının) başka birimlerin sürücüleri de kullanabilir.</item>
 /// <item>Değişiklikler ~5 sn'de bir, Flush'ta ve ayırmada commit edilir. Windows önbelleği kapalıdır (bkz. Init): her yazma
 /// doğrudan buraya gelir, dosya kapandıktan sonra geç yazma olmaz.</item>
 /// </list>
@@ -35,13 +36,17 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
     private const uint FileAttributeHidden = 0x2, FileAttributeDirectory = 0x10, FileAttributeNormal = 0x80;
 
 
-    /// <summary>SYSTEM, Yöneticiler ve etkileşimli kullanıcılar tam erişime sahip; sahibi Yöneticiler.</summary>
-    private const string SecurityDescriptorSddl = "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;IU)";
+    /// <summary>
+    /// Yazılabilir birim: tam erişim yalnız SYSTEM, Yöneticiler ve oturum açmış (etkileşimli) kullanıcılara; sahibi Yöneticiler.
+    /// Everyone (WD) değil: ağ oturumları ve hizmet hesapları yazamaz (açık depo bildirimi #2, 1.8.0; kanalın modeliyle aynı,
+    /// <c>Protocol.cs</c>). Salt okunur sürücünün (<see cref="ApfsFileSystem"/>) okuma ACL'si değişmedi.
+    /// </summary>
+    internal const string SecurityDescriptorSddl = "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;IU)";
 
     private readonly WriteSession _session;
     private readonly VolumeWriter _vol;
     private readonly ApfsVolume _view;
-    private readonly Lock _gate = new();
+    private readonly Lock _gate; // = oturumun kilidi (aynı kapsayıcının bütün sürücüleri paylaşır)
     private readonly byte[] _securityDescriptor;
     private readonly Timer _commitTimer;
     private readonly uint _bs;
@@ -59,9 +64,18 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
     /// </summary>
     public event Action<string>? ChangeLost;
 
+    /// <summary>
+    /// Oturumun bir commit'i yarıda kaldı (<see cref="WriteSession.IsFaulted"/>): oturum bir daha yazmaz, tek doğru yol kaydetmeden
+    /// bırakmak. Oturum başına BİR kez gelir (commit'i ilk düşen sürücüden; çok birimde öbür sürücüler sessizce hata döner). Bir
+    /// dinleyici varsa bu hata <see cref="ChangeLost"/>'a GİTMEZ (çift uyarı olmasın); yoksa eskisi gibi ChangeLost. İleti hatanın
+    /// kendisidir ("Değişiklikler diske yazılamadı" öneki yok).
+    /// </summary>
+    public event Action<string>? Faulted;
+
     public ApfsWritableFileSystem(WriteSession session, int volumeIndex, TimeSpan? commitInterval = null)
     {
         _session = session;
+        _gate = session.SyncRoot;
         _vol = session.Volume(volumeIndex);
         _view = _vol.View(session.Container);
         _bs = session.Container.BlockSize;
@@ -85,13 +99,17 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
     /// <summary>Oturumun sayaçları: başarılı commit, yazılan bayt, değiştiren işlem (oluştur/yaz/boyut/sil/ad/öznitelik) sayısı.</summary>
     public WriteStats Stats { get { lock (_gate) return new WriteStats(_commits, _bytesWritten, _operations); } }
 
-    /// <summary>Bekleyen değişiklikleri kalıcı yapar (zamanlayıcı, Flush, ayırma).</summary>
+    /// <summary>
+    /// Bekleyen değişiklikleri kalıcı yapar (zamanlayıcı, Flush, ayırma). Döner: başarı, ya da oturum arızalıysa (bu commit ya da
+    /// daha önceki bir commit düştüyse) STATUS_DEVICE_NOT_CONNECTED — Flush bunu uygulamaya dürüstçe iletir.
+    /// </summary>
     public int CommitIfDirty()
     {
         lock (_gate)
         {
-            if (_session.IsFaulted) return ApfsFileSystem.StatusDeviceNotConnected;
-            if (_disposed || !_vol.IsDirty) return ApfsFileSystem.StatusSuccess;
+            if (_disposed) return ApfsFileSystem.StatusSuccess;
+            if (_session.IsFaulted) return ApfsFileSystem.StatusDeviceNotConnected; // bildirildi (oturum başına bir kez)
+            if (!_vol.IsDirty) return ApfsFileSystem.StatusSuccess;
             try
             {
                 _session.Commit();
@@ -100,11 +118,15 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
             }
             catch (Exception e)
             {
-                ChangeLost?.Invoke(CoreText.T("Fs.WriteBackFailed", e.Message));
-                return e is ApfsException ae ? ToNtStatus(ae.Code) : ApfsFileSystem.StatusUnexpectedIoError;
+                if (Faulted is { } faulted) faulted(e.Message); // hatanın kendisi (hizmet "son değişikliklerin bir kısmı…" ayrıntısına koyar)
+                else ChangeLost?.Invoke(CoreText.T("Fs.WriteBackFailed", e.Message));
+                return ApfsFileSystem.StatusDeviceNotConnected;
             }
         }
     }
+
+    /// <summary>Oturum arızalıysa değiştiren çağrılar diske hiçbir şey vermeden bu durumla döner (_gate altında okunur).</summary>
+    private bool IsFaulted => _session.IsFaulted;
 
     public override int Init(object host0)
     {
@@ -257,9 +279,10 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
     {
         lock (_gate)
         {
-            if (_session.IsFaulted)
+            if (IsFaulted)
             {
-                fileNode = fileDesc = null!;
+                fileNode = null!;
+                fileDesc = null!;
                 fileInfo = default;
                 normalizedName = null!;
                 return ApfsFileSystem.StatusDeviceNotConnected;
@@ -284,7 +307,7 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
         if (fileDesc is OpenHandle { ContentReadOnly: true }) { fileInfo = default; return ApfsFileSystem.StatusAccessDenied; }
         lock (_gate)
         {
-            if (_session.IsFaulted) { fileInfo = default; return ApfsFileSystem.StatusDeviceNotConnected; }
+            if (IsFaulted) { fileInfo = default; return ApfsFileSystem.StatusDeviceNotConnected; }
             ulong id = ((Node)fileNode).Id;
             // macOS'un sıkıştırdığı dosya bu sürümde salt okunur (kullanıcı kararı 2026-10-05: gerçek Mac dosyasında sınanmadı);
             // SetSize bunu RequireWritableFile'da reddeder → "erişim engellendi"
@@ -306,11 +329,7 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
         if ((flags & CleanupDelete) == 0 || fileName is null) return;
         lock (_gate)
         {
-            if (_session.IsFaulted)
-            {
-                Error?.Invoke(CoreText.T("Fs.WriteBackFailed", CoreText.U("Error.IoError")));
-                return;
-            }
+            if (IsFaulted) return; // CanDelete zaten reddeder; arada arızalandıysa silme bellekte bile yapılmaz
             try
             {
                 var (parent, name) = ResolveParent(fileName);
@@ -435,7 +454,7 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
         if (fileDesc is OpenHandle { ContentReadOnly: true }) { bytesTransferred = 0; fileInfo = default; return ApfsFileSystem.StatusAccessDenied; }
         lock (_gate)
         {
-            if (_session.IsFaulted) { bytesTransferred = 0; fileInfo = default; return ApfsFileSystem.StatusDeviceNotConnected; }
+            if (IsFaulted) { bytesTransferred = 0; fileInfo = default; return ApfsFileSystem.StatusDeviceNotConnected; }
             ulong id = ((Node)fileNode).Id;
             ulong size = _vol.GetSize(id);
             if (constrainedIo)
@@ -459,7 +478,7 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
         if (fileDesc is OpenHandle { ContentReadOnly: true }) { fileInfo = default; return ApfsFileSystem.StatusAccessDenied; }
         lock (_gate)
         {
-            if (_session.IsFaulted) { fileInfo = default; return ApfsFileSystem.StatusDeviceNotConnected; }
+            if (IsFaulted) { fileInfo = default; return ApfsFileSystem.StatusDeviceNotConnected; }
             ulong id = ((Node)fileNode).Id;
             // Ayırma boyutu yalnızca bir ipucu; dosyadan küçükse dosya kısalır (WinFsp sözleşmesi)
             if (!setAllocationSize || newSize < _vol.GetSize(id)) { _vol.SetSize(id, newSize); _operations++; }
@@ -474,7 +493,7 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
     {
         lock (_gate)
         {
-            if (_session.IsFaulted) { fileInfo = default; return ApfsFileSystem.StatusDeviceNotConnected; }
+            if (IsFaulted) { fileInfo = default; return ApfsFileSystem.StatusDeviceNotConnected; }
             ulong id = ((Node)fileNode).Id;
             if (fileAttributes != uint.MaxValue) _vol.SetHidden(id, (fileAttributes & FileAttributeHidden) != 0);
             if (creationTime != 0 || lastAccessTime != 0 || lastWriteTime != 0 || changeTime != 0)
@@ -489,6 +508,7 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
     {
         lock (_gate)
         {
+            if (IsFaulted) return ApfsFileSystem.StatusDeviceNotConnected;
             var ino = _view.GetInode(((Node)fileNode).Id);
             return ino.IsDirectory && ino.ChildrenOrLinks > 0 ? StatusDirectoryNotEmpty : ApfsFileSystem.StatusSuccess;
         }
@@ -498,7 +518,7 @@ public sealed class ApfsWritableFileSystem : FileSystemBase, IDisposable
     {
         lock (_gate)
         {
-            if (_session.IsFaulted) return ApfsFileSystem.StatusDeviceNotConnected;
+            if (IsFaulted) return ApfsFileSystem.StatusDeviceNotConnected;
             var (srcParent, srcName) = ResolveParent(fileName);
             var (dstParent, dstName) = ResolveParent(newFileName);
             _vol.Rename(srcParent.Id, srcName, dstParent.Id, dstName, replaceIfExists);

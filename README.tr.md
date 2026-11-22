@@ -19,7 +19,7 @@ Diski takarsınız, birkaç saniye içinde Dosya Gezgini'nde sürücü harfi ola
 | Takınca kendiliğinden bağlanma | Arka planda çalışan hizmet APFS disklerini bulur ve bağlar |
 | Sade arayüz | Ana pencere ve tepside küçük bir panel: diskler, "Aç", "Kilidi aç", "Güvenle çıkar" |
 | Birden çok birim | Her kullanıcı birimi ayrı sürücü harfi alır; macOS'un iç birimleri (Önyükleme, Kurtarma…) gizlenir |
-| Şifreli birimler (deneysel) | Tepsi simgesi parolayı sorar (ipucuyla); parola hiçbir yere kaydedilmez |
+| Şifreli birimler (deneysel) | Tepsi simgesi parolayı sorar (ipucuyla); parola yalnız "Bu bilgisayarda hatırla" seçilirse kaydedilir |
 | Sıkıştırılmış dosyalar | zlib, LZVN, LZFSE (macOS'un şeffaf sıkıştırması) |
 | Türkçe ve Unicode adlar | ç, ğ, ı, İ, ö, ş, ü; Mac'in NFD biçimi; Windows'ta yasak karakterler (`: ? *` …) |
 | Büyük dosyalar | 4 GB üstü, çok parçalı ve seyrek dosyalar |
@@ -27,7 +27,7 @@ Diski takarsınız, birkaç saniye içinde Dosya Gezgini'nde sürücü harfi ola
 | 10 arayüz dili | Türkçe, English, Deutsch, Français, Español, Português (Brasil), Italiano, 日本語, 简体中文, 한국어 |
 
 ## Kurulum
-`Hashido-Setup-1.6.5.exe` dosyasını çalıştırın ve sihirbazı izleyin (İleri › Kur › Son). Windows 10/11 (64 bit) yeter;
+`Hashido-Setup-1.8.0.exe` dosyasını çalıştırın ve sihirbazı izleyin (İleri › Kur › Son). Windows 10/11 (64 bit) yeter;
 başka bir şey kurmanız gerekmez: .NET programla birlikte gelir, [WinFsp](https://winfsp.dev) sürücüsü yoksa sihirbaz onu da kurar.
 Kurulumdan sonra Başlat menüsünde **Hashido** bulunur ve tepsi simgesi her oturumda kendiliğinden açılır.
 
@@ -39,7 +39,9 @@ Kurulumdan sonra Başlat menüsünde **Hashido** bulunur ve tepsi simgesi her ot
 Kaldırmak için: **Ayarlar › Uygulamalar › Yüklü uygulamalar › Hashido › Kaldır**. Kaldırma disklerinize hiçbir şey yazmaz;
 günlük (`C:\ProgramData\APFS for Windows\log.txt`) incelemeniz için bırakılır, WinFsp kaldırılmaz. Gönderilmemiş
 raporlar ile gönderilenlerin listesi (`C:\ProgramData\APFS for Windows\reports`, `%LOCALAPPDATA%\APFS for Windows\reports`) ve otomatik raporlar
-sorusuna verdiğiniz cevap silinir, yeniden kurulumda yeniden sorulur; dil, görünüm ve güncelleme bildirimi ayarlarınız kalır.
+sorusuna verdiğiniz cevap silinir, yeniden kurulumda yeniden sorulur; "Bu bilgisayarda hatırla" ile kaydedilen parolalar
+kaldıran hesap için silinir; indirilmiş güncellemeler (`%LOCALAPPDATA%\APFS for Windows\updates`)
+de silinir; dil, görünüm, bildirim ve güncelleme ayarlarınız kalır.
 
 ## Kullanım
 - **Ana pencere** (Başlat menüsü veya tepsi menüsünden "Ana pencereyi aç"): takılı her Mac diski adıyla ve yanında **Güvenle
@@ -50,11 +52,24 @@ sorusuna verdiğiniz cevap silinir, yeniden kurulumda yeniden sorulur; dil, gör
 - **Tepsi paneli**: saatin yanındaki Hashido simgesine (kırmızı mühür) sol tıklayın; aynı işlemler küçük bir panelde. Sağ tık
   menüsünde "Ana pencereyi aç", disk başına "güvenle çıkar", "Yeniden tara", "Günlüğü aç" ve "Çıkış" bulunur.
 - **Görünüm:** iki tasarım, Windows 11 (Windows'un kendi görünümü ve vurgu rengi; varsayılan) ve Hashido (kâğıt ve mürekkep);
-  ikisi de açık ya da koyu. Ayarlar (çark simgesi) › Görünüm'den seçilir; program yeni görünüm için yeniden açılır. Tema "Windows'a uy" iken
-  (varsayılan) program Windows'un uygulama modunu izler (Ayarlar › Kişiselleştirme › Renkler) ve modu değiştirdiğinizde, süren
-  bir şey kalmayınca kendini yeni modda yeniden başlatır.
+  ikisi de açık ya da koyu. Ayarlar (çark simgesi) › Görünüm'den seçilir; tasarım değişince program yeniden açılır, açık/koyu hemen değişir.
+  Tema "Windows'a uy" iken (varsayılan) program Windows'un uygulama modunu izler (Ayarlar › Kişiselleştirme › Renkler) ve modu
+  değiştirdiğinizde hemen ona geçer.
 - **Şifreli birimler:** **Kilidi aç**, Mac'te kullandığınız parolayı ipucuyla birlikte sorar. Parola yalnız bilgisayardaki hizmete
-  gönderilir ve hiçbir yere kaydedilmez; yeniden başlatmadan sonra yeniden sorulur.
+  gönderilir ve yalnız **Bu bilgisayarda hatırla** işaretlenirse kaydedilir: o zaman bu bilgisayarda Windows hesabınıza ait
+  Windows Kimlik Bilgileri Yöneticisi'nde durur ve disk takılınca birim kendiliğinden açılır — Windows Hello kuruluysa önce Windows
+  Hello onayıyla; Windows Hello yoksa hesabınızla oturum açan herkes açabilir. Parola Mac'te değiştiyse kayıtlı olan silinir ve
+  yeniden sorulur. Kayıtlı parola yazma iznini hiçbir zaman açmaz. **Ayarlar › Hatırlanan parolalar › Unut** kaydı siler.
+  Kaydedilmeyen parola yeniden başlatmadan sonra yeniden sorulur.
+- **Güncellemeler:** yeni sürüm çıkınca program onu indirir ve takılı Mac diski yokken kurar; Windows bir kez izninizi ister.
+  Ana pencerenin altındaki bağlantı da yeni sürümü sunar ("Kur" önce diskleri güvenle çıkarır). Ayarlar › Güncellemeler'den
+  kendiliğinden kurulum kapatılır (o zaman yalnız haber verilir); "Şimdi denetle" de orada.
+- **Bildirimler:** Ayarlar › Bildirimler (seçenekler tıklayınca görünür) saatin yanında hangi iletilerin çıkacağını belirler:
+  **Tüm bildirimler** (varsayılan); **Yalnız önemli bildirimler** (uyarılar ve sizin başlattığınız işlerin sonucu, ör. **Güvenle
+  çıkar**'dan sonra "Kabloyu şimdi çekebilirsiniz"; disk takılınca gelen "E: sürücüsü olarak bağlandı" değil) ya da **Bildirimleri
+  tamamen kapat** (uyarılar da çıkmaz; yalnız güncelleme kurulurken Windows izin penceresinden hemen önceki haber kalır). Olanlar
+  her durumda günlüğe yazılır. Pencereler (parola, onay ve hata pencereleri)
+  bildirim değildir, her zaman açılır.
 
 <p align="center"><img src="docs/images/tr/designs.png" width="720" alt="Ana pencere Windows 11 tasarımında (üstte) ve Hashido tasarımında (altta), açık ve koyu"></p>
 <p align="center"><img src="docs/images/tr/password.png" width="400" alt="Şifreli Arşiv birimi için ipuçlu parola penceresi"></p>
@@ -83,15 +98,19 @@ diski yeniden salt okunur bağlar.
 - Yazma yarıda kesilirse (kablo çekilmesi, elektrik kesintisi) disk bir önceki kaydedilmiş hâliyle açılır; Mac diskiniz bozulmaz.
   Son birkaç saniyenin değişiklikleri kaybolabilir. (Bazı USB kutuları "diske boşalt" komutuna uymaz; o durumda kaybolan süre
   biraz uzayabilir, disk yine bir önceki sağlam hâliyle açılır.)
-- Hangi diskler yazmaya açılır: tek birimli APFS bölümleri, **şifresiz** ya da Mac'te **parolayla şifrelenmiş** (Disk İzlencesi'nde
+- Hangi diskler yazmaya açılır: APFS bölümleri, **şifresiz** ya da Mac'te **parolayla şifrelenmiş** (Disk İzlencesi'nde
   "APFS (Şifreli)"; 1.2.0). Şifreli birimde önce **Kilidi aç**, sonra **Yazmaya izin ver**: dosyalar diske yine şifreli yazılır.
   Parola yazmaya açarken yeniden sorulmaz, "Salt okunura dön"de de sorulmaz (anahtar yalnızca bellekte tutulur; disk çıkarılınca
   ya da hizmet durunca silinir, hiçbir yere kaydedilmez).
 - Birden çok APFS bölümü olan bir diskte (ör. Mac'te bölümlenmiş bir bellek) her bölümün kendi **«ad»: Yazmaya izin ver**
   düğmesi vardır; bir bölümü yazmaya açmak öbürlerine dokunmaz.
+- Birden çok birimli bir bölüm (ör. yan yana şifresiz ve şifreli birim; 1.7.0) bütün olarak yazmaya açılır: açık olan her birim
+  yazılır. İçindeki kilitli şifreli birim kilitli ve dokunulmadan kalır; ona da yazmak için önce **Kilidi aç**, sonra **Yazmaya izin
+  ver**. Yazma açıkken kilitli birimin kilidi açılamaz: önce **Salt okunura dön**.
 - Şunlar salt okunur kalır ve nedeni birimin altında yazar: macOS'un şifreleme işlemi bitmemiş ya da şifrelemesi sonradan değiştirilmiş
   birimler, donanımla (T2/Apple Silicon) veya dosya başına anahtarla şifrelenmiş birimler, anlık görüntüsü olan (ör. Time Machine)
-  diskler, macOS sistem/yedek birimleri, Fusion Drive, aynı bölümde birden çok birim ve iç yapısında tutarsızlık görülen diskler.
+  diskler, macOS sistem/yedek birimleri, Fusion Drive, kotası olan birimler (birden çok birimli bölümde ayrılmış boyutu olanlar da)
+  ve iç yapısında tutarsızlık görülen diskler. Böyle bir birim bulunduğu bölümün tamamını salt okunur bırakır.
 - Bu sürümde içeriği değiştirilemeyenler: Mac'te "Çoğalt" ile oluşturulmuş (klon) dosyalar ve macOS'un sıkıştırarak sakladığı
   dosyalar (çoğunlukla uygulama ve sistem dosyaları; Finder ile kopyalanan belgeler ve fotoğraflar değil). Bunlar açılabilir,
   kopyalanabilir, silinip taşınabilir; üzerine kaydedilmek istendiğinde Windows "erişim engellendi" der (kopyasını düzenleyin).
@@ -153,11 +172,11 @@ halleriyle gösterilir. Desteklenmeyen bir yöntemle (ör. LZBITMAP) sıkıştı
 "İstek desteklenmiyor" hatası verir ve nedeni günlüğe yazılır.
 
 ## Desteklenmeyenler
-Aynı bölümde birden çok birim olan disklere yazma; şifreli birimin parolasını değiştirme, şifreleme/şifre çözme; onarım, biçimlendirme; anlık görüntüler (snapshot) ve Time Machine yapısı;
+Kilitli şifreli birime yazma; şifreli birimin parolasını değiştirme, şifreleme/şifre çözme; onarım, biçimlendirme; anlık görüntüler (snapshot) ve Time Machine yapısı;
 Fusion Drive; mühürlü macOS sistem birimi; DMG/sparsebundle dosyaları; HFS+; Apple Silicon/T2 dahili disk donanım şifrelemesi.
 
 ## Gizlilik
-Son güncelleme: 2026-11-08. Bağlayıcı olan [İngilizce metindir](README.md#privacy); bu çeviri bilgi amaçlıdır. Aynı metin [worker/PRIVACY.md](worker/PRIVACY.md) dosyasında da var.
+Son güncelleme: 2026-11-17. Bağlayıcı olan [İngilizce metindir](README.md#privacy); bu çeviri bilgi amaçlıdır. Aynı metin [worker/PRIVACY.md](worker/PRIVACY.md) dosyasında da var.
 
 **Otomatik raporlar siz "evet" diyene kadar kapalıdır.** Program ilk açılışta bir kez anonim rapor gönderip gönderemeyeceğini
 sorar. "Evet, gönder" demediğiniz sürece hiçbir şey toplanmaz ve gönderilmez. Seçiminizi istediğiniz zaman **Ayarlar**'dan
@@ -190,8 +209,13 @@ programının kendi çökme raporları ise `%LOCALAPPDATA%\APFS for Windows\repo
 **Haklarınız.** Raporlar hiçbir kimlik taşımadığı için hiç kimse (geliştirici dahil) hangi raporun sizden geldiğini bilemez; bu
 yüzden tek tek raporlar istek üzerine bulunamaz ya da silinemez. Raporları kapatmak bundan sonraki bütün raporları durdurur.
 
-**Güncelleme denetimi.** Ayarlar'dan kapatmadığınız sürece program günde bir kez GitHub'a (`api.github.com`) yeni sürüm olup
-olmadığını sorar. Size ya da disklerinize dair hiçbir şey gönderilmez; GitHub isteği kendi gizlilik açıklamasındaki gibi görür.
+**Güncelleme denetimi ve güncellemeler.** Ayarlar › Güncellemeler'den kapatmadığınız sürece program GitHub'a
+(`api.github.com`) yeni sürüm olup olmadığını sorar: açılınca ya da penceresi açılınca (genellikle en fazla saatte bir),
+çalışırken günde bir kez ve "Şimdi denetle"ye tıkladığınızda. Size ya da disklerinize dair hiçbir şey gönderilmez; GitHub isteği kendi gizlilik açıklamasındaki
+gibi görür. "Güncellemeleri kendiliğinden indir ve kur" açıksa (varsayılan), yeni kurulum dosyası projenin GitHub
+sürümünden (`github.com`) indirilir, GitHub'ın o dosya için yayımladığı SHA-256 sağlama değeriyle karşılaştırılır, tutmazsa
+reddedilir; yalnız takılı Mac diski yokken ve Windows'un izin penceresinde siz onaylayınca kurulur. İndirilen dosya
+güncelleme kurulana dek `%LOCALAPPDATA%\APFS for Windows\updates` klasöründe durur. Seçeneği kapatırsanız yalnız bildirim kalır.
 
 **İletişim.** Sorular ve istekler: [GitHub Issues](https://github.com/ErsinZorba/Hashido/issues). Bu açıklamadaki
 değişiklikler depo geçmişinde görünür.

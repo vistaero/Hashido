@@ -1,38 +1,82 @@
-using System.ComponentModel;
 using System.Runtime.InteropServices;
+using Fsp;
 
 namespace Apfs.Mount;
 
-/// <summary>Elige una letra libre antes de pedirle a WinFsp que monte el sistema de archivos.</summary>
-internal static class DriveLetterAllocator
+/// <summary>
+/// Bağlama noktası verilmediğinde sürücü harfini seçer (açık depo bildirimi #4, 1.8.0). Hizmet LocalSystem olarak çalışır ve
+/// kullanıcının ağ sürücülerini görmez; WinFsp'nin kendi seçimi (Z'den geriye) kullanıcının sonradan bağlanan ağ sürücüleriyle
+/// (genelde Z, Y, X…) çakışıyordu. Sıra: T'den F'ye geriye, hiç boş yoksa son çare U–Z. Biçim düz "X:" (Bağlama Yöneticisi'ne
+/// kaydedilmez → Geri Dönüşüm Kutusu kurulmaz; <c>\\.\X:</c> KULLANMA, kurallar/yazma.md "Sürücü harfi").
+/// </summary>
+public static class DriveLetterAllocator
 {
-    // El servicio LocalSystem no ve necesariamente las unidades de red de la sesión interactiva; evita el tramo U:–Z:,
-    // donde suelen estar esas asignaciones, siguiendo el criterio ya usado por Apfs.DevWriter.
-    private const string CandidateLetters = "TSRQPONMLKJIHGF";
+    /// <summary>Harf arada başka biri tarafından kapılırsa en çok bu kadar harf denenir.</summary>
+    internal const int MaxAttempts = 3;
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern uint GetLogicalDrives();
+    /// <summary>Denenecek harfler, sırasıyla.</summary>
+    public static IReadOnlyList<char> Order { get; } = [.. Enumerable.Range(0, 'T' - 'F' + 1).Select(i => (char)('T' - i)),
+        .. Enumerable.Range('U', 'Z' - 'U' + 1).Select(i => (char)i)];
 
-    public static string GetFreeMountPoint()
+    /// <summary>
+    /// <paramref name="usedMask"/> (bit 0 = A:, <c>GetLogicalDrives</c> biçimi) dışındaki ilk harf ("T:" biçiminde); yoksa null.
+    /// </summary>
+    public static string? Pick(uint usedMask)
     {
-        // El mapa contiene las unidades visibles para el proceso; se combina con el tramo conservador para no depender
-        // de que los mapeos de red de otro inicio de sesión sean visibles para el servicio.
-        uint occupied = GetLogicalDrives();
-        if (occupied == 0)
+        foreach (char c in Order)
+            if ((usedMask & (1u << (c - 'A'))) == 0) return c + ":";
+        return null;
+    }
+
+    /// <summary>
+    /// <paramref name="fs"/>'i bağlar: <paramref name="mountPoint"/> verilmişse oraya; null ise seçilen harfe (harf arada
+    /// kapılırsa sıradaki, en çok <see cref="MaxAttempts"/> deneme; her denemede YENİ host, başarısız host bırakılır). Başarısızsa
+    /// <see cref="ApfsException"/> (<c>Fs.MountFailed</c> ya da <c>Fs.NoFreeDriveLetter</c>); WinFsp yüklenemezse onun istisnası
+    /// olduğu gibi geçer (çağıran anlaşılır iletiye çevirir).
+    /// </summary>
+    internal static FileSystemHost MountHost(FileSystemBase fs, string? mountPoint)
+    {
+        if (mountPoint is not null)
         {
-            int error = Marshal.GetLastPInvokeError();
-            throw new ApfsException(ApfsErrorCode.IoError,
-                CoreText.T("Fs.DriveEnumerationFailed", error, new Win32Exception(error).Message));
+            int st = TryMount(fs, mountPoint, out var h);
+            return h ?? throw new ApfsException(ApfsErrorCode.IoError, CoreText.T("Fs.MountFailed", st));
         }
-        return FindFreeMountPoint(occupied);
+        uint tried = 0;
+        int status = 0;
+        for (int attempt = 0; attempt < MaxAttempts; attempt++)
+        {
+            string? letter = Pick(GetLogicalDrives() | tried);
+            if (letter is null) break;
+            status = TryMount(fs, letter, out var host);
+            if (host is not null) return host;
+            tried |= 1u << (letter[0] - 'A');
+        }
+        if (tried == 0) throw new ApfsException(ApfsErrorCode.IoError, CoreText.T("Fs.NoFreeDriveLetter"));
+        throw new ApfsException(ApfsErrorCode.IoError, CoreText.T("Fs.MountFailed", status));
     }
 
-    internal static string FindFreeMountPoint(uint occupied)
+    private static int TryMount(FileSystemBase fs, string mountPoint, out FileSystemHost? host)
     {
-        foreach (char letter in CandidateLetters)
-            if ((occupied & (1u << (letter - 'A'))) == 0)
-                return $"{letter}:";
-
-        throw new ApfsException(ApfsErrorCode.IoError, CoreText.T("Fs.NoFreeDriveLetter"));
+        var h = new FileSystemHost(fs);
+        int status;
+        try
+        {
+            status = h.Mount(mountPoint, null, false, 0);
+        }
+        catch
+        {
+            h.Dispose();
+            throw;
+        }
+        if (status == 0)
+        {
+            host = h;
+            return 0;
+        }
+        h.Dispose();
+        host = null;
+        return status;
     }
+
+    [DllImport("kernel32.dll")] private static extern uint GetLogicalDrives();
 }

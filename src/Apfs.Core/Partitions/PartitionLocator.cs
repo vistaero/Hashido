@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Apfs.Container;
 using Apfs.IO;
 using Apfs.Util;
@@ -22,14 +23,23 @@ public static class PartitionLocator
             return [new ApfsPartition(0, device.Length, 0, CoreText.U("Partition.Unpartitioned"))];
 
         // GPT başlığı 1. LBA'dadır; sektör boyutu 512 veya 4096 olabilir.
+        bool? protectiveMbr = null;
+        Exception? readError = null;
+        string? problem = null;
         foreach (int sector in new[] { device.SectorSize, 512, 4096 }.Distinct())
         {
             if (device.Length < sector * 2L) continue;
-            var header = new byte[sector];
-            device.Read(sector, header);
-            if (!header.AsSpan(0, 8).SequenceEqual(GptSignature)) continue;
-            return ParseGpt(device, header, sector);
+            var primary = new byte[sector];
+            bool hasPrimary = TryRead(device, sector, primary, ref readError) && HasGptSignature(primary);
+            // Birincil imza kayıpsa, MBR'ye çevrilmiş disklerde kalmış eski bir GPT yedeğini kullanma.
+            if (!hasPrimary && !(protectiveMbr ??= HasProtectiveMbr(device, ref readError))) continue;
+
+            var partitions = ParseGpt(device, hasPrimary ? primary : null, sector, ref readError, out string candidateProblem);
+            if (partitions is not null) return partitions;
+            problem ??= candidateProblem;
         }
+        if (readError is not null) ExceptionDispatchInfo.Throw(readError);
+        if (problem is not null) throw ApfsException.Corrupt(problem);
         return [];
     }
 
@@ -60,42 +70,97 @@ public static class PartitionLocator
         return Bin.U32(head, 32) == ApfsConstants.NxMagic;
     }
 
-    private static List<ApfsPartition> ParseGpt(IBlockDevice device, byte[] header, int sector)
-    {
-        uint headerSize = Bin.U32(header, 12);
-        if (headerSize < 92 || headerSize > header.Length)
-            throw ApfsException.Corrupt(CoreText.T("Partition.GptHeaderInvalid"));
-        var headerForCrc = header.AsSpan(0, (int)headerSize).ToArray();
-        uint headerCrc = Bin.U32(header, 16);
-        Array.Clear(headerForCrc, 16, 4);
-        if (ComputeCrc32(headerForCrc) != headerCrc)
-            throw ApfsException.Corrupt(CoreText.T("Partition.GptHeaderInvalid"));
+    private static bool HasGptSignature(ReadOnlySpan<byte> header) => header[..8].SequenceEqual(GptSignature);
 
-        long sectorCount = device.Length / sector;
-        ulong currentLba = Bin.U64(header, 24);
-        ulong backupLba = Bin.U64(header, 32);
-        ulong firstUsable = Bin.U64(header, 40);
-        ulong lastUsable = Bin.U64(header, 48);
+    private static bool HasProtectiveMbr(IBlockDevice device, ref Exception? readError)
+    {
+        Span<byte> mbr = stackalloc byte[512];
+        if (!TryRead(device, 0, mbr, ref readError) || Bin.U16(mbr, 510) != 0xAA55) return false;
+        for (int offset = 446; offset < 510; offset += 16)
+            if (mbr[offset + 4] == 0xEE && Bin.U32(mbr, offset + 8) == 1) return true;
+        return false;
+    }
+
+    private static bool TryRead(IBlockDevice device, long offset, Span<byte> buffer, ref Exception? readError)
+    {
+        try
+        {
+            device.Read(offset, buffer);
+            return true;
+        }
+        catch (Exception e) when (e is IOException or ApfsException { Code: ApfsErrorCode.IoError })
+        {
+            readError ??= e;
+            return false;
+        }
+    }
+
+    /// <summary>Geçerli birincil GPT tercih edilir. Birincil açılamazsa bildirilen yedek konumu ve son sektör denenir.</summary>
+    private static List<ApfsPartition>? ParseGpt(IBlockDevice device, byte[]? primary, int sector,
+        ref Exception? readError, out string problem)
+    {
+        long sectors = device.Length / sector;
+        problem = CoreText.T("Partition.GptHeaderInvalid");
+        if (primary is not null && TryReadTable(device, primary, sector, 1, ref readError, out var table, out problem))
+            return ParseEntries(primary, table, sector);
+
+        ulong alt = primary is null ? 0 : Bin.U64(primary, 32);
+        long backupLba = alt > 1 && alt < (ulong)sectors ? (long)alt : sectors - 1;
+        foreach (long lba in new[] { backupLba, sectors - 1 }.Distinct())
+        {
+            if (lba <= 1) continue;
+            var backup = new byte[sector];
+            if (TryRead(device, lba * sector, backup, ref readError) && HasGptSignature(backup)
+                && TryReadTable(device, backup, sector, lba, ref readError, out table, out _))
+                return ParseEntries(backup, table, sector);
+        }
+        return null;
+    }
+
+    private static bool TryReadTable(IBlockDevice device, byte[] header, int sector, long expectedLba,
+        ref Exception? readError, out byte[] table, out string problem)
+    {
+        table = [];
+        problem = CoreText.T("Partition.GptHeaderInvalid");
+        long sectors = device.Length / sector;
+        uint headerSize = Bin.U32(header, 12);
+        if (headerSize < 92 || headerSize > sector) return false;
+        var copy = header.AsSpan(0, (int)headerSize).ToArray();
+        uint headerCrc = Bin.U32(copy, 16);
+        copy.AsSpan(16, 4).Clear();
+        if (GptCrc32.Compute(copy) != headerCrc) return false;
+        if (Bin.U64(header, 24) != (ulong)expectedLba) return false;
+        ulong firstUsable = Bin.U64(header, 40), lastUsable = Bin.U64(header, 48);
+        if (firstUsable < 2 || firstUsable > lastUsable || lastUsable >= (ulong)sectors) return false;
+
         ulong entriesLba = Bin.U64(header, 72);
         uint count = Bin.U32(header, 80);
         uint entrySize = Bin.U32(header, 84);
-        if (sectorCount < 3 || currentLba != 1 || backupLba != (ulong)(sectorCount - 1)
-            || firstUsable < 2 || firstUsable > lastUsable || lastUsable >= (ulong)sectorCount
-            || entrySize < 128 || entrySize > 4096 || entrySize % 8 != 0
-            || count == 0 || count > MaxPartitionEntries)
-            throw ApfsException.Corrupt(CoreText.T("Partition.GptHeaderInvalid"));
+        if (entrySize < 128 || entrySize > 4096 || entrySize % 8 != 0 || count == 0 || count > MaxPartitionEntries) return false;
 
-        long tableLength = (long)count * entrySize;
-        if (entriesLba < 2 || tableLength > device.Length
-            || entriesLba > (ulong)((device.Length - tableLength) / sector))
-            throw ApfsException.Corrupt(CoreText.T("Partition.GptOutsideDisk"));
+        long tableLength = (long)count * entrySize; // ≤ 4 MiB
+        ulong tableSectors = (ulong)((tableLength + sector - 1) / sector);
+        if (entriesLba < 2 || entriesLba >= (ulong)sectors || tableSectors > (ulong)sectors - entriesLba)
+        {
+            problem = CoreText.T("Partition.GptOutsideDisk");
+            return false;
+        }
+        ulong tableEnd = entriesLba + tableSectors;
+        if (expectedLba == 1 ? tableEnd > firstUsable : entriesLba <= lastUsable || tableEnd > (ulong)expectedLba)
+            return false;
 
-        long tableOffset = checked((long)entriesLba * sector);
-        var table = new byte[tableLength];
-        device.Read(tableOffset, table);
-        if (ComputeCrc32(table) != Bin.U32(header, 88))
-            throw ApfsException.Corrupt(CoreText.T("Partition.GptHeaderInvalid"));
+        var entries = new byte[tableLength];
+        if (!TryRead(device, (long)entriesLba * sector, entries, ref readError)
+            || GptCrc32.Compute(entries) != Bin.U32(header, 88)) return false;
+        table = entries;
+        return true;
+    }
 
+    private static List<ApfsPartition> ParseEntries(byte[] header, byte[] table, int sector)
+    {
+        uint count = Bin.U32(header, 80);
+        uint entrySize = Bin.U32(header, 84);
+        ulong firstUsable = Bin.U64(header, 40), lastUsable = Bin.U64(header, 48);
         var result = new List<ApfsPartition>();
         for (int i = 0; i < count; i++)
         {
@@ -104,27 +169,13 @@ public static class PartitionLocator
             if (type != ApfsPartitionType) continue;
             ulong first = Bin.U64(entry, 32);
             ulong last = Bin.U64(entry, 40);
-            if (last < first || first < firstUsable || last > lastUsable || last >= (ulong)sectorCount) continue;
-            ulong blocks = last - first + 1;
-            if (first > (ulong)(long.MaxValue / sector) || blocks > (ulong)(long.MaxValue / sector)) continue;
-            long offset = (long)(first * (ulong)sector);
-            long length = (long)(blocks * (ulong)sector);
-            if (offset > device.Length - length) continue;
+            // LBA'ları çarpmadan önce disk sınırları içindeki kullanılabilir aralıkla karşılaştır.
+            if (first < firstUsable || last < first || last > lastUsable) continue;
+            long offset = (long)first * sector;
+            long length = (long)(last - first + 1) * sector;
             string name = System.Text.Encoding.Unicode.GetString(entry.Slice(56, 72)).TrimEnd('\0');
             result.Add(new ApfsPartition(offset, length, i + 1, string.IsNullOrEmpty(name) ? CoreText.U("Partition.Numbered", i + 1) : name));
         }
         return result;
-    }
-
-    private static uint ComputeCrc32(ReadOnlySpan<byte> data)
-    {
-        uint crc = 0xFFFFFFFF;
-        foreach (byte value in data)
-        {
-            crc ^= value;
-            for (int bit = 0; bit < 8; bit++)
-                crc = (crc & 1) != 0 ? 0xEDB88320 ^ (crc >> 1) : crc >> 1;
-        }
-        return ~crc;
     }
 }
