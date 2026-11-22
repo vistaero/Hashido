@@ -903,6 +903,9 @@
   <data name="Fs.EntryUnreadable" xml:space="preserve">
     <value>"{0}" could not be read: {1}</value>
   </data>
+  <data name="Fs.NoFreeDriveLetter" xml:space="preserve">
+    <value>no free drive letter (F: to Z: are all in use)</value>
+  </data>
   <data name="Fs.MountFailed" xml:space="preserve">
     <value>drive could not be mounted (NTSTATUS 0x{0:X8}); the letter may be in use</value>
   </data>
@@ -1347,11 +1350,17 @@
   <data name="Write.Block" xml:space="preserve">
     <value>block {0}</value>
   </data>
+  <data name="Write.BlockNotOwnedThisTx" xml:space="preserve">
+    <value>block {0} was not allocated for this volume's data in this transaction; cannot overwrite it</value>
+  </data>
   <data name="Write.BlockNotAllocatedThisTx" xml:space="preserve">
     <value>block {0} was not allocated in this transaction; cannot overwrite it</value>
   </data>
   <data name="Write.ChangedSinceGrant" xml:space="preserve">
     <value>the disk changed after write permission was granted; it must be checked again</value>
+  </data>
+  <data name="Write.SessionFaulted" xml:space="preserve">
+    <value>an earlier save of this write session failed; the session can no longer write (the disk stays as it was at the last successful save)</value>
   </data>
   <data name="Write.CheckpointDataAreaFull" xml:space="preserve">
     <value>checkpoint data area too small</value>
@@ -1385,9 +1394,6 @@
   </data>
   <data name="Write.PhysOidNotAddress" xml:space="preserve">
     <value>block {0}: physical object's oid is not its address</value>
-  </data>
-  <data name="Write.PlainWriteRefused" xml:space="preserve">
-    <value>writing data without a key refused in an encrypted volume's session</value>
   </data>
   <data name="Write.UnknownEphemeral" xml:space="preserve">
     <value>unrecognized ephemeral object: oid {0}, type 0x{1:x8}/{2}</value>
