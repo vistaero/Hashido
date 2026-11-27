@@ -4,6 +4,9 @@ using System.Text;
 
 namespace Apfs.Windows;
 
+/// <summary>Kasadan okumanın sonucu (1.9.1): kayıt var, kayıt yok (Windows: 1168 ERROR_NOT_FOUND) ya da okunamadı (başka hata).</summary>
+public enum CredentialRead { Found, Missing, Failed }
+
 /// <summary>Hatırlanan bir birim (parolasız: liste yalnız ad ve UUID taşır).</summary>
 public sealed record RememberedVolume(string Uuid, string Name);
 
@@ -13,6 +16,10 @@ public sealed record RememberedVolume(string Uuid, string Name);
 /// = dolaşmaz); kullanıcı kayıtları Windows'un kendi Kimlik Bilgileri Yöneticisi'nde de görüp silebilir. Yalnız tepsi kullanır (hizmet
 /// SYSTEM'dir, kullanıcının kasasını görmez). Hedef adı SABİT önekli (<see cref="Prefix"/>): ürün adından türetilmez, ad değişse de
 /// kayıtlar sahipsiz kalmaz. Parola hiçbir günlüğe yazılmaz; okunan bayt dizisi kullanılınca sıfırlanır.
+/// <para>Bütün kasa çağrıları süreç içinde TEK kilitle sıradadır (<see cref="Gate"/>): Windows'un kasası aynı anda gelen
+/// yazma/silmelerde güncelleme kaybediyor — 8 iş parçacığı × 200 yaz-oku-sil turunda "başarılı" silinen 97 kayıt kasada kaldı,
+/// iki süreçte başarıyla yazılmış kayıt hemen ardından okunamadı (1168); kilitle 16 × 300 turda 0 (tamDuzeltmePlan P0, 2026-11-23).
+/// Süreçler arası yarışı bu kilit önleyemez.</para>
 /// </summary>
 public sealed class CredentialStore(string prefix)
 {
@@ -22,6 +29,9 @@ public sealed class CredentialStore(string prefix)
     public static CredentialStore Default { get; } = new(Prefix);
 
     private readonly string _prefix = prefix;
+
+    /// <summary>Bütün örneklerin bütün kasa çağrıları bu kilitle sıradadır (önekten bağımsız: kasa tektir).</summary>
+    private static readonly object Gate = new();
 
     /// <summary>Kaydeder (varsa üzerine yazar). UUID geçerli bir GUID değilse <see cref="ArgumentException"/>.</summary>
     public void Save(string uuid, string volumeName, string password)
@@ -37,7 +47,14 @@ public sealed class CredentialStore(string prefix)
                 Type = CredTypeGeneric, TargetName = target, CredentialBlobSize = (uint)blob.Length, CredentialBlob = mem,
                 Persist = CredPersistLocalMachine, UserName = volumeName,
             };
-            if (!CredWrite(ref c, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
+            bool ok;
+            int error;
+            lock (Gate)
+            {
+                ok = CredWrite(ref c, 0);
+                error = Marshal.GetLastWin32Error();
+            }
+            if (!ok) throw new Win32Exception(error);
         }
         finally
         {
@@ -47,10 +64,48 @@ public sealed class CredentialStore(string prefix)
         }
     }
 
-    /// <summary>Kayıtlı parola; kayıt yoksa (ya da okunamıyorsa) null.</summary>
-    public string? TryRead(string uuid)
+    /// <summary>Kayıtlı parola; kayıt yoksa (ya da okunamıyorsa) null. Ayrım gerekiyorsa <see cref="Read"/>.</summary>
+    public string? TryRead(string uuid) => Read(uuid, out var password) == CredentialRead.Found ? password : null;
+
+    /// <summary>
+    /// Kayıtlı parolayı okur ve "kayıt yok"u okuma hatasından ayırır (1.9.1): tepsi hata hâlinde kaydı var sayar (kutu işaretli),
+    /// yoksa elle açışta işaretsiz kutu var olan kaydı siliyordu. Hata kodu <paramref name="error"/>'da (günlük için).
+    /// </summary>
+    public CredentialRead Read(string uuid, out string? password) => Read(uuid, out password, out _);
+
+    /// <inheritdoc cref="Read(string, out string?)"/>
+    public CredentialRead Read(string uuid, out string? password, out int error)
     {
-        if (!CredRead(Target(uuid), CredTypeGeneric, 0, out IntPtr p)) return null;
+        string target = Target(uuid);
+        password = null;
+        if (TestReadError is { } fault)
+        {
+            error = fault;
+            return fault == ErrorNotFound ? CredentialRead.Missing : CredentialRead.Failed;
+        }
+        lock (Gate) return ReadLocked(target, out password, out error);
+    }
+
+    /// <summary>Test kancası: verilirse okuma bu Windows hata koduyla düşer (1168 = kayıt yok). Yalnız bu örnekte.</summary>
+    internal int? TestReadError { get; set; }
+
+    private const int ErrorNotFound = 1168;
+
+    private static CredentialRead ReadLocked(string target, out string? password, out int error)
+    {
+        password = null;
+        error = 0;
+        if (!CredRead(target, CredTypeGeneric, 0, out IntPtr p))
+        {
+            error = Marshal.GetLastWin32Error();
+            return error == ErrorNotFound ? CredentialRead.Missing : CredentialRead.Failed;
+        }
+        password = ReadBlob(p);
+        return password is null ? CredentialRead.Missing : CredentialRead.Found;
+    }
+
+    private static string? ReadBlob(IntPtr p)
+    {
         try
         {
             var c = Marshal.PtrToStructure<Credential>(p);
@@ -70,19 +125,33 @@ public sealed class CredentialStore(string prefix)
     /// <summary>Kayıttaki birim adı (Ayarlar listesinde görünen); kayıt yoksa null. Parola blob'u kopyalanmaz.</summary>
     public string? NameOf(string uuid)
     {
-        if (!CredRead(Target(uuid), CredTypeGeneric, 0, out IntPtr p)) return null;
-        try { return Marshal.PtrToStructure<Credential>(p).UserName ?? ""; }
-        finally { CredFree(p); }
+        string target = Target(uuid);
+        lock (Gate)
+        {
+            if (!CredRead(target, CredTypeGeneric, 0, out IntPtr p)) return null;
+            try { return Marshal.PtrToStructure<Credential>(p).UserName ?? ""; }
+            finally { CredFree(p); }
+        }
     }
 
     /// <summary>Kaydı siler; silindiyse true (yoksa false).</summary>
-    public bool Delete(string uuid) => CredDelete(Target(uuid), CredTypeGeneric, 0);
+    public bool Delete(string uuid)
+    {
+        string target = Target(uuid);
+        lock (Gate) return CredDelete(target, CredTypeGeneric, 0);
+    }
 
     /// <summary>Bu önekli bütün kayıtlar (parola okunmaz).</summary>
     public List<RememberedVolume> List()
     {
         var list = new List<RememberedVolume>();
-        if (!CredEnumerate(_prefix + "*", 0, out uint count, out IntPtr arr)) return list; // ERROR_NOT_FOUND: kayıt yok
+        lock (Gate) ListLocked(list);
+        return list;
+    }
+
+    private void ListLocked(List<RememberedVolume> list)
+    {
+        if (!CredEnumerate(_prefix + "*", 0, out uint count, out IntPtr arr)) return; // ERROR_NOT_FOUND: kayıt yok
         try
         {
             for (int i = 0; i < count; i++)
@@ -95,7 +164,6 @@ public sealed class CredentialStore(string prefix)
             }
         }
         finally { CredFree(arr); }
-        return list;
     }
 
     /// <summary>Bu önekli bütün kayıtları siler (kaldırma); silinen sayısı.</summary>

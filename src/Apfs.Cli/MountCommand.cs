@@ -29,7 +29,8 @@ internal static partial class MountCommand
         {
             foreach (var volume in volumes)
             {
-                var mount = ApfsMount.Mount(volume, mountPoint, msg => Console.Error.WriteLine(WinText.T("Cli.MountWarning", msg)));
+                Action<string> warn = msg => Console.Error.WriteLine(WinText.T("Cli.MountWarning", msg));
+                var mount = ApfsMount.Mount(volume, mountPoint, warn, onLog: warn);
                 mount.FileSystem.Stats.Enabled = o.Has("--stats");
                 mounts.Add(mount);
                 Console.WriteLine(WinText.T("Cli.Mounted", mount.MountPoint, volume.Name, (volume.RoleName.Length > 0 ? $" [{volume.RoleName}]" : ""), (mount.FileSystem.KernelReadOnlyFlagSet ? "" : WinText.T("Cli.KernelFlagNotSet"))));
@@ -57,24 +58,32 @@ internal static partial class MountCommand
     {
         var result = new List<ApfsVolume>();
         var opened = c.OpenVolumes(passwords);
-        foreach (var r in opened)
+        try
         {
-            if (index is int want && r.Index != want) continue;
-            if (r.Volume is not { } v)
+            foreach (var r in opened)
             {
-                report(WinText.T("Cli.VolumeNotMounted", r.Index, r.Error!.Message));
-                continue;
+                if (index is int want && r.Index != want) continue;
+                if (r.Volume is not { } v)
+                {
+                    report(WinText.T("Cli.VolumeNotMounted", r.Index, r.Error!.Message));
+                    continue;
+                }
+                if (index is null && !includeSystem && !v.IsUserVisible)
+                {
+                    report(WinText.T("Cli.InternalVolumeSkipped", r.Index, v.Name, v.RoleName));
+                    continue;
+                }
+                result.Add(v);
             }
-            if (index is null && !includeSystem && !v.IsUserVisible)
-            {
-                report(WinText.T("Cli.InternalVolumeSkipped", r.Index, v.Name, v.RoleName));
-                continue;
-            }
-            result.Add(v);
+            if (index is int i && result.Count == 0 && opened.All(r => r.Index != i))
+                throw new ApfsException(ApfsErrorCode.InvalidArgument, WinText.T("Cli.NoSuchVolume", i));
+            return result;
         }
-        if (index is int i && result.Count == 0 && opened.All(r => r.Index != i))
-            throw new ApfsException(ApfsErrorCode.InvalidArgument, WinText.T("Cli.NoSuchVolume", i));
-        return result;
+        finally
+        {
+            // Seçilmeyen birimler atılır (şifreleyicileri bellekte kalmasın); seçilenler bağlanınca sürücünün (ApfsMount atar)
+            foreach (var r in opened) if (r.Volume is { } v && !result.Contains(v)) v.Dispose();
+        }
     }
 
     /// <summary>
@@ -83,6 +92,8 @@ internal static partial class MountCommand
     /// </summary>
     public static int RunFromLauncher(CliOptions o)
     {
+        // SYSTEM olarak koşar (WinFsp Launcher): ProgramData günlüğüne yalnız hizmetin güvenceye aldığı hâldeyse yazılır (1.9.1)
+        if (!DataDirSecurity.IsServiceLogAreaSafe()) ServiceLog.UseFallbackOnly();
         string disk = o.Require(0, "disk");
         if (SourceOpener.ParsePhysicalDrive(disk) is null)
         {
@@ -124,7 +135,8 @@ internal static partial class MountCommand
                 if (volumes.Count == 0) throw new ApfsException(ApfsErrorCode.NotFound, WinText.T("Cli.NoMountableVolume"));
                 foreach (var volume in volumes)
                 {
-                    var m = ApfsMount.Mount(volume, volumes.Count == 1 ? mountPoint : null, msg => ServiceLog.Write($"{disk}: {msg}"));
+                    Action<string> log = msg => ServiceLog.Write($"{disk}: {msg}");
+                    var m = ApfsMount.Mount(volume, volumes.Count == 1 ? mountPoint : null, log, onLog: log);
                     _mounts.Add(m);
                     ServiceLog.Write(WinText.T("Cli.LauncherMounted", disk, volume.Name, m.MountPoint));
                 }

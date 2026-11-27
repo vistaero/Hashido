@@ -42,6 +42,9 @@
   <data name="BTree.RootNotMarked" xml:space="preserve">
     <value>B-tree root is not marked as root (block {0})</value>
   </data>
+  <data name="BTree.SharedChild" xml:space="preserve">
+    <value>B-tree node reached twice in one scan (shared child, block {0})</value>
+  </data>
   <data name="BTree.TooDeep" xml:space="preserve">
     <value>B-tree too deep (possible loop)</value>
   </data>
@@ -81,8 +84,14 @@
   <data name="Check.BlockedOut" xml:space="preserve">
     <value>container is being resized (blocked-out range); not supported</value>
   </data>
+  <data name="Check.ChunkBitmapTail" xml:space="preserve">
+    <value>space manager: chunk {0}: bitmap has bits set beyond the chunk</value>
+  </data>
   <data name="Check.ChunkFreeCount" xml:space="preserve">
     <value>space manager: chunk {0} free count {1}, bitmap {2}</value>
+  </data>
+  <data name="Check.CompressedNoDecmpfs" xml:space="preserve">
+    <value>{0}: inode {1}: marked compressed but has no decmpfs attribute</value>
   </data>
   <data name="Check.ContainerWarning" xml:space="preserve">
     <value>container: {0}</value>
@@ -90,11 +99,35 @@
   <data name="Check.Counters" xml:space="preserve">
     <value>{0}: counters file/directory/symlink/other {1}/{2}/{3}/{4}, counted {5}/{6}/{7}/{8}</value>
   </data>
+  <data name="Check.CryptoIdOnPlain" xml:space="preserve">
+    <value>{0}: object {1}: crypto id {2} on an unencrypted volume</value>
+  </data>
+  <data name="Check.CryptoStateOnPlain" xml:space="preserve">
+    <value>{0}: crypto state record {1} on an unencrypted volume</value>
+  </data>
+  <data name="Check.DecmpfsNotCompressed" xml:space="preserve">
+    <value>{0}: inode {1}: has a decmpfs attribute but is not marked compressed</value>
+  </data>
   <data name="Check.DeviceFreeCount" xml:space="preserve">
     <value>space manager: device free counter {0}, bitmaps {1}</value>
   </data>
   <data name="Check.DirChildCount" xml:space="preserve">
     <value>{0}: directory {1} child count {2}, entries {3}</value>
+  </data>
+  <data name="Check.DirEntryNameNotUtf8" xml:space="preserve">
+    <value>{0}: directory {1}: an entry name is not valid UTF-8</value>
+  </data>
+  <data name="Check.PartitionOverlapsOther" xml:space="preserve">
+    <value>partition table: the APFS partition overlaps another (non-APFS) partition</value>
+  </data>
+  <data name="Check.VolumeUuidRepeated" xml:space="preserve">
+    <value>volumes {1} and {2} have the same UUID ({0})</value>
+  </data>
+  <data name="Check.DirEntryNameInvalid" xml:space="preserve">
+    <value>{0}: directory {1}: an entry has an invalid name (missing or inner NUL, ".", "..", "/" or too long)</value>
+  </data>
+  <data name="Check.DirParentChain" xml:space="preserve">
+    <value>{0}: directory {1}: parent chain does not reach the root (parent_id {2})</value>
   </data>
   <data name="Check.DirMultiplyReferenced" xml:space="preserve">
     <value>{0}: directory {1} is referenced from {2} places</value>
@@ -128,6 +161,9 @@
   </data>
   <data name="Check.EntryVirtualParentNotRoot" xml:space="preserve">
     <value>{0}: "{1}" is in the virtual parent directory but is not the root</value>
+  </data>
+  <data name="Check.EphemeralOidReused" xml:space="preserve">
+    <value>checkpoint: ephemeral object id {0} is used by two structures</value>
   </data>
   <data name="Check.EvictMapping" xml:space="preserve">
     <value>container has an evict-mapping tree; not supported</value>
@@ -201,20 +237,68 @@
   <data name="Check.Incomplete" xml:space="preserve">
     <value>check could not be completed: {0}</value>
   </data>
+  <data name="Check.IndexKeyNotFirst" xml:space="preserve">
+    <value>{0}: node {1}: first key differs from the index key above it</value>
+  </data>
   <data name="Check.InodeLinkCount" xml:space="preserve">
     <value>{0}: inode {1} link count {2}, entries {3}</value>
+  </data>
+  <data name="Check.InodeNoName" xml:space="preserve">
+    <value>{0}: inode {1}: no name field</value>
   </data>
   <data name="Check.InodeNotFileHasStream" xml:space="preserve">
     <value>{0}: inode {1} is not a file but has a data stream</value>
   </data>
+  <data name="Check.InodeXFieldFlags" xml:space="preserve">
+    <value>{0}: inode {1}: sparse or purgeable flag disagrees with its extended fields</value>
+  </data>
+  <data name="Check.InodeXFields" xml:space="preserve">
+    <value>{0}: inode {1}: malformed extended fields ({2})</value>
+  </data>
   <data name="Check.IpBitmapDiff" xml:space="preserve">
     <value>internal pool: bitmap and usage differ in {0} blocks</value>
+  </data>
+  <data name="Check.IpBitmapTail" xml:space="preserve">
+    <value>space manager: internal pool bitmap has bits set beyond the pool</value>
   </data>
   <data name="Check.IpBlockUsedTwice" xml:space="preserve">
     <value>{0}: internal pool block {1} is used twice</value>
   </data>
+  <data name="Check.IpFreeListLoops" xml:space="preserve">
+    <value>space manager: internal pool free bitmap list loops</value>
+  </data>
+  <data name="Check.IpFreeListOutside" xml:space="preserve">
+    <value>space manager: internal pool free bitmap list is out of bounds ({0}, {1})</value>
+  </data>
+  <data name="Check.IpFreeListTail" xml:space="preserve">
+    <value>space manager: internal pool free bitmap list does not end at its tail</value>
+  </data>
+  <data name="Check.IpPoolSize" xml:space="preserve">
+    <value>space manager: internal pool size {0} is not three times the chunk, CIB and CAB count</value>
+  </data>
+  <data name="Check.IpRingCounts" xml:space="preserve">
+    <value>space manager: internal pool bitmap ring of {0} blocks for {1} bitmaps ({2} in use); expected 16 copies</value>
+  </data>
+  <data name="Check.IpUsedSlotFree" xml:space="preserve">
+    <value>space manager: internal pool bitmap slot {0} is in use but on the free list, out of range or used twice</value>
+  </data>
+  <data name="Check.KeyOrderTotal" xml:space="preserve">
+    <value>{0}: {1} key order problems in total</value>
+  </data>
+  <data name="Check.KeysOutOfOrder" xml:space="preserve">
+    <value>{0}: node {1}: keys are out of order</value>
+  </data>
+  <data name="Check.KeysRepeated" xml:space="preserve">
+    <value>{0}: node {1}: a key is repeated</value>
+  </data>
   <data name="Check.LabelBlock0" xml:space="preserve">
     <value>block 0</value>
+  </data>
+  <data name="Check.LabelCab" xml:space="preserve">
+    <value>chunk-info address blocks of a disk over ~7 TB</value>
+  </data>
+  <data name="Check.LabelCheckpointMap" xml:space="preserve">
+    <value>checkpoint map</value>
   </data>
   <data name="Check.LabelChunkBitmap" xml:space="preserve">
     <value>chunk bitmap</value>
@@ -240,6 +324,9 @@
   <data name="Check.LabelExtentrefNode" xml:space="preserve">
     <value>extentref node</value>
   </data>
+  <data name="Check.LabelExtentrefTree" xml:space="preserve">
+    <value>extentref tree</value>
+  </data>
   <data name="Check.LabelFextTree" xml:space="preserve">
     <value>fext tree</value>
   </data>
@@ -257,6 +344,9 @@
   </data>
   <data name="Check.LabelFsNode" xml:space="preserve">
     <value>fs node {0}</value>
+  </data>
+  <data name="Check.LabelFsTree" xml:space="preserve">
+    <value>file system tree</value>
   </data>
   <data name="Check.LabelIntegrityMeta" xml:space="preserve">
     <value>integrity metadata</value>
@@ -276,8 +366,14 @@
   <data name="Check.LabelNode" xml:space="preserve">
     <value>{0} node</value>
   </data>
+  <data name="Check.LabelRevert" xml:space="preserve">
+    <value>pending revert to an earlier state</value>
+  </data>
   <data name="Check.LabelSnapMetaNode" xml:space="preserve">
     <value>snap_meta node</value>
+  </data>
+  <data name="Check.LabelSnapMetaTree" xml:space="preserve">
+    <value>snap_meta tree</value>
   </data>
   <data name="Check.LabelSnapshotExtension" xml:space="preserve">
     <value>snapshot extension</value>
@@ -309,8 +405,14 @@
   <data name="Check.LeakedUnchecked" xml:space="preserve">
     <value>space manager: {0} blocks appear to belong to unchecked structures (marked used, owner not resolved)</value>
   </data>
+  <data name="Check.MarkedTooMuch" xml:space="preserve">
+    <value>{0}: more blocks are claimed than the container has (overlapping structures); ownership is not checked further</value>
+  </data>
   <data name="Check.MarkedUsedNotUsed" xml:space="preserve">
     <value>marked used but not in use</value>
+  </data>
+  <data name="Check.MemoryBudget" xml:space="preserve">
+    <value>the full check may need about {0} MiB of memory, above the safe budget of {1} MiB; trying anyway</value>
   </data>
   <data name="Check.MissingEncryptedFlag" xml:space="preserve">
     <value>{0}: node {1} not flagged encrypted on an encrypted volume</value>
@@ -320,6 +422,18 @@
   </data>
   <data name="Check.NextObjId" xml:space="preserve">
     <value>{0}: next object id {1}, largest used {2}</value>
+  </data>
+  <data name="Check.NextXid" xml:space="preserve">
+    <value>container superblock: next transaction id {0} is not above the current one ({1})</value>
+  </data>
+  <data name="Check.OidNotBelowNext" xml:space="preserve">
+    <value>{0}: object id {1} is not below the container's next object id ({2})</value>
+  </data>
+  <data name="Check.OidNotBelowNextTotal" xml:space="preserve">
+    <value>{0}: {1} object ids in total are not below the container's next object id ({2})</value>
+  </data>
+  <data name="Check.OmapFlags" xml:space="preserve">
+    <value>{0}: invalid object map flags 0x{1:X}</value>
   </data>
   <data name="Check.OmapFutureXid" xml:space="preserve">
     <value>container omap: record {0} is from a future transaction (xid {1})</value>
@@ -333,17 +447,29 @@
   <data name="Check.OmapNonVolumeRecords" xml:space="preserve">
     <value>container omap has records that are not volumes</value>
   </data>
+  <data name="Check.OmapRecordFlags" xml:space="preserve">
+    <value>{0}: object {1}: invalid record flags 0x{2:X}</value>
+  </data>
   <data name="Check.OmapRecordSize" xml:space="preserve">
     <value>container omap: record {0} has size {1}</value>
   </data>
   <data name="Check.OmapRecordUnused" xml:space="preserve">
     <value>{0}: omap record {1} is not used by any node</value>
   </data>
+  <data name="Check.OnlyLinkName" xml:space="preserve">
+    <value>{0}: inode {1}: name differs from its only directory entry "{2}"</value>
+  </data>
+  <data name="Check.OnlyLinkParent" xml:space="preserve">
+    <value>{0}: inode {1}: parent_id {2}, its only directory entry is in {3}</value>
+  </data>
   <data name="Check.OrphanDstreamRecord" xml:space="preserve">
     <value>{0}: orphan data stream record {1}</value>
   </data>
   <data name="Check.OrphanExtents" xml:space="preserve">
     <value>{0}: orphan extents (data stream {1})</value>
+  </data>
+  <data name="Check.OrphanHasSiblings" xml:space="preserve">
+    <value>{0}: inode {1}: in the private directory but has sibling records</value>
   </data>
   <data name="Check.OwnershipDifferent" xml:space="preserve">
     <value>DIFFERENT</value>
@@ -372,6 +498,12 @@
   <data name="Check.PhysExtentsOverlap" xml:space="preserve">
     <value>{0}: physical extents overlap ({1})</value>
   </data>
+  <data name="Check.PrimaryLinkName" xml:space="preserve">
+    <value>{0}: inode {1}: name differs from the primary link (sibling {2}, "{3}")</value>
+  </data>
+  <data name="Check.PrimaryLinkParent" xml:space="preserve">
+    <value>{0}: inode {1}: parent_id {2}, primary link's parent {3}</value>
+  </data>
   <data name="Check.RangeOutside" xml:space="preserve">
     <value>{0}: block range {1}+{2} is outside the container</value>
   </data>
@@ -380,6 +512,57 @@
   </data>
   <data name="Check.RootDirMissing" xml:space="preserve">
     <value>{0}: root directory missing</value>
+  </data>
+  <data name="Check.RuleTotal" xml:space="preserve">
+    <value>{0}: {1}: {2} records in total</value>
+  </data>
+  <data name="Check.SiblingCount" xml:space="preserve">
+    <value>{0}: inode {1}: link count {2}, sibling records {3}</value>
+  </data>
+  <data name="Check.SiblingIdInvalid" xml:space="preserve">
+    <value>{0}: inode {1}: invalid sibling id {2}</value>
+  </data>
+  <data name="Check.SiblingInodeMissing" xml:space="preserve">
+    <value>{0}: sibling records for missing inode {1}</value>
+  </data>
+  <data name="Check.SiblingMismatch" xml:space="preserve">
+    <value>{0}: inode {1}: sibling {2}: sibling link and directory entry disagree</value>
+  </data>
+  <data name="Check.SiblingNoMap" xml:space="preserve">
+    <value>{0}: inode {1}: sibling {2} has no sibling map</value>
+  </data>
+  <data name="Check.SiblingRecordBad" xml:space="preserve">
+    <value>{0}: object {1}: malformed sibling record</value>
+  </data>
+  <data name="Check.SiblingUnmatched" xml:space="preserve">
+    <value>{0}: inode {1}: sibling {2} lacks its directory entry or sibling link</value>
+  </data>
+  <data name="Check.SmArrayOffset" xml:space="preserve">
+    <value>space manager: array {0} at offset {1} overlaps the structure, is unaligned or runs past the object</value>
+  </data>
+  <data name="Check.SmArraysOverlap" xml:space="preserve">
+    <value>space manager: arrays {0} and {1} overlap</value>
+  </data>
+  <data name="Check.SmChunkBlocks" xml:space="preserve">
+    <value>space manager: chunks cover {0} blocks, device has {1}</value>
+  </data>
+  <data name="Check.SmChunkGeometry" xml:space="preserve">
+    <value>space manager: chunk {0} (address {1}, {2} blocks) is not consecutive or has a wrong size</value>
+  </data>
+  <data name="Check.SmChunksPerCib" xml:space="preserve">
+    <value>space manager: {0} chunks per chunk-info block, expected {1}</value>
+  </data>
+  <data name="Check.SmCibChunks" xml:space="preserve">
+    <value>space manager: chunk-info block {0} has {1} chunks</value>
+  </data>
+  <data name="Check.SmCibsPerCab" xml:space="preserve">
+    <value>space manager: {0} chunk-info blocks per address block, expected {1}</value>
+  </data>
+  <data name="Check.SmDeviceCount" xml:space="preserve">
+    <value>space manager: wrong {0} count ({1}) for the block count</value>
+  </data>
+  <data name="Check.SmStructSize" xml:space="preserve">
+    <value>space manager: struct size {0}, expected 2520</value>
   </data>
   <data name="Check.SpacemanBlockCount" xml:space="preserve">
     <value>space manager: block count differs from the container</value>
@@ -407,6 +590,9 @@
   </data>
   <data name="Check.Tier2QueueNotEmpty" xml:space="preserve">
     <value>tier 2 free queue is not empty (Fusion is not supported)</value>
+  </data>
+  <data name="Check.UncompressedSizeWithoutFlag" xml:space="preserve">
+    <value>{0}: inode {1}: uncompressed size set without its flag</value>
   </data>
   <data name="Check.UnknownEphemeral" xml:space="preserve">
     <value>unrecognized ephemeral object: oid {0}, type 0x{1:x8}/{2}</value>
@@ -446,6 +632,15 @@
   </data>
   <data name="Check.VolumeNotOpened" xml:space="preserve">
     <value>{0}: could not be opened (may be encrypted); file system tree not checked, block ownership checked</value>
+  </data>
+  <data name="Check.VolumeOpenFailed" xml:space="preserve">
+    <value>{0}: the volume could not be opened: {1}</value>
+  </data>
+  <data name="Check.VolumeUnsupported" xml:space="preserve">
+    <value>{0}: the volume uses an unsupported structure: {1}</value>
+  </data>
+  <data name="Check.XattrKind" xml:space="preserve">
+    <value>{0}: inode {1}: an attribute is neither only embedded nor only a data stream</value>
   </data>
   <data name="Check.XattrStreamHasRefRecord" xml:space="preserve">
     <value>{0}: xattr stream {1} must not have a reference record</value>
@@ -518,6 +713,15 @@
   </data>
   <data name="Container.OldApfsVersion" xml:space="preserve">
     <value>old APFS version (pre-macOS 10.12 developer release)</value>
+  </data>
+  <data name="Container.CandidateUnreadable" xml:space="preserve">
+    <value>{0} block(s) of the checkpoint area could not be read even on retry (first: {1}); a newer checkpoint may have been skipped.</value>
+  </data>
+  <data name="Container.ForeignCheckpointSkipped" xml:space="preserve">
+    <value>A newer superblock (xid {0}) of another container ({1}) in the checkpoint area was skipped.</value>
+  </data>
+  <data name="Container.VolumeUuidRepeated" xml:space="preserve">
+    <value>another volume (object {1}) in this container has the same UUID ({0})</value>
   </data>
   <data name="Container.OlderCheckpointUsed" xml:space="preserve">
     <value>The newest checkpoint could not be read; an older checkpoint (xid {0}) is used. Some recent changes may not be visible.</value>
@@ -597,6 +801,9 @@
   <data name="Cp.SuperblockNotAtEnd" xml:space="preserve">
     <value>superblock is not at the end of the descriptor range (block {0}, expected {1})</value>
   </data>
+  <data name="Crypto.IterationBudget" xml:space="preserve">
+    <value>the unlock records need {0} password iterations in total (at most {1} are accepted)</value>
+  </data>
   <data name="Crypto.KekIterationsInvalid" xml:space="preserve">
     <value>KEK iteration count invalid</value>
   </data>
@@ -621,8 +828,17 @@
   <data name="Crypto.PasswordHint" xml:space="preserve">
     <value>hint: {0}</value>
   </data>
+  <data name="Crypto.TooManyUnlockRecords" xml:space="preserve">
+    <value>the volume key store has {0} unlock records (at most {1} are accepted)</value>
+  </data>
+  <data name="Crypto.UnlockCancelled" xml:space="preserve">
+    <value>unlocking was stopped: the disk was removed</value>
+  </data>
   <data name="Crypto.VekLength" xml:space="preserve">
     <value>VEK must be 32 bytes</value>
+  </data>
+  <data name="Crypto.VekLengthUnsupported" xml:space="preserve">
+    <value>the password is correct but the volume key is {0} bytes ({1} expected); this kind of encryption is not supported</value>
   </data>
   <data name="Crypto.VolumeKeyNotInContainer" xml:space="preserve">
     <value>the volume's encryption key is not in the container (may be hardware encryption)</value>
@@ -650,6 +866,12 @@
   </data>
   <data name="Decmpfs.InvalidBlockTable" xml:space="preserve">
     <value>compressed block table invalid</value>
+  </data>
+  <data name="Decmpfs.SizeMismatch" xml:space="preserve">
+    <value>uncompressed size in the inode ({0}) differs from the compression header ({1})</value>
+  </data>
+  <data name="Decmpfs.InlineSizeExceedsData" xml:space="preserve">
+    <value>compression header size ({0} bytes) cannot come from {1} bytes of attribute data</value>
   </data>
   <data name="Decmpfs.InvalidFileSize" xml:space="preserve">
     <value>compressed file size invalid</value>
@@ -906,6 +1128,9 @@
   <data name="Fs.EntryUnreadable" xml:space="preserve">
     <value>"{0}" could not be read: {1}</value>
   </data>
+  <data name="Fs.NamesSuffixed" xml:space="preserve">
+    <value>{0} Mac name(s) in a folder fall on the same Windows name as another entry (or cannot be mapped back) and are shown with a number added before the extension (first: "{1}"); on a writable drive these entries cannot be changed.</value>
+  </data>
   <data name="Fs.NoFreeDriveLetter" xml:space="preserve">
     <value>no free drive letter (F: to Z: are all in use)</value>
   </data>
@@ -1143,6 +1368,9 @@
   <data name="Records.XFieldsOverflow" xml:space="preserve">
     <value>extended fields do not fit in the record</value>
   </data>
+  <data name="Sm.ArrayOutside" xml:space="preserve">
+    <value>Space manager: array at offset {0} is outside the object.</value>
+  </data>
   <data name="Sm.BlockOutOfRange" xml:space="preserve">
     <value>block {0} is outside the space manager's range</value>
   </data>
@@ -1151,6 +1379,9 @@
   </data>
   <data name="Sm.CabWrongIndex" xml:space="preserve">
     <value>CAB {0}: wrong index</value>
+  </data>
+  <data name="Sm.ChunkInvalid" xml:space="preserve">
+    <value>space manager chunk {0} is larger than a chunk or lies outside the container</value>
   </data>
   <data name="Sm.CibCountTooBig" xml:space="preserve">
     <value>CIB {0}: chunk count does not fit in the block</value>
@@ -1167,6 +1398,9 @@
   <data name="Sm.FreeQueueTreeNotMapped" xml:space="preserve">
     <value>free queue tree {0} is not in the checkpoint map</value>
   </data>
+  <data name="Sm.InternalPoolInvalid" xml:space="preserve">
+    <value>the space manager's internal pool or its bitmap lies outside the container or does not fit</value>
+  </data>
   <data name="Sm.IpBitmapIndexOutside" xml:space="preserve">
     <value>internal pool bitmap index is outside the ring</value>
   </data>
@@ -1175,6 +1409,9 @@
   </data>
   <data name="Sm.SizeInconsistent" xml:space="preserve">
     <value>space manager block/chunk size is inconsistent</value>
+  </data>
+  <data name="Sm.TooManyChunks" xml:space="preserve">
+    <value>the space manager lists more chunks than the container can have</value>
   </data>
   <data name="Sm.WrongType" xml:space="preserve">
     <value>space manager object has the wrong type</value>
@@ -1260,8 +1497,14 @@
   <data name="VolWriter.ExtentWithoutCryptoId" xml:space="preserve">
     <value>data stream {0}: extent without crypto_id on an encrypted volume</value>
   </data>
+  <data name="VolWriter.FileTooLarge" xml:space="preserve">
+    <value>file too large: the size or offset exceeds the largest size this version can write ({0} bytes)</value>
+  </data>
   <data name="VolWriter.InvalidName" xml:space="preserve">
     <value>invalid name</value>
+  </data>
+  <data name="VolWriter.InvalidNameEscape" xml:space="preserve">
+    <value>the name contains a character from U+F680–U+F6FF (reserved for showing invalid Mac names)</value>
   </data>
   <data name="VolWriter.InvalidNameChar" xml:space="preserve">
     <value>invalid character in name</value>
@@ -1290,6 +1533,9 @@
   <data name="VolWriter.OmapDeleted" xml:space="preserve">
     <value>object {0} is marked deleted</value>
   </data>
+  <data name="VolWriter.ParentChainLoop" xml:space="preserve">
+    <value>directory parent chain does not reach the root (inode {0})</value>
+  </data>
   <data name="VolWriter.PerFileKeys" xml:space="preserve">
     <value>cannot write to an encrypted volume with per-file keys</value>
   </data>
@@ -1302,6 +1548,9 @@
   <data name="VolWriter.ViewTooLate" xml:space="preserve">
     <value>the view must be set up before the session's first change</value>
   </data>
+  <data name="Volume.DataBeyondAllocation" xml:space="preserve">
+    <value>the file is {0} bytes but only {1} bytes are allocated to it (file is not sparse)</value>
+  </data>
   <data name="Volume.DirEntryKeyLength" xml:space="preserve">
     <value>directory entry key length inconsistent</value>
   </data>
@@ -1310,6 +1559,9 @@
   </data>
   <data name="Volume.DirectoryAsFile" xml:space="preserve">
     <value>a directory cannot be opened as a file</value>
+  </data>
+  <data name="Volume.EncryptionChangeUnreadable" xml:space="preserve">
+    <value>macOS's encryption change on this volume did not finish and its state is not understood ({0}); encrypted file data is not read so that no file is shown with wrong content. Let macOS finish the encryption (connect the disk to the Mac and wait)</value>
   </data>
   <data name="Volume.ExtentOutsideDisk" xml:space="preserve">
     <value>file extent points outside the disk</value>
@@ -1407,6 +1659,15 @@
   <data name="Write.WrittenCheckpointInvalid" xml:space="preserve">
     <value>written checkpoint invalid: {0}</value>
   </data>
+  <data name="Write.CommitUnverified" xml:space="preserve">
+    <value>Changes were saved (transaction {0}), but the new checkpoint could not be read back: {1}</value>
+  </data>
+  <data name="Write.Block0Failed" xml:space="preserve">
+    <value>Changes were saved (transaction {0}), but the clean-unmount mark (block 0) could not be written: {1}. The disk opens from its latest checkpoint.</value>
+  </data>
+  <data name="Write.CommitStillUnverified" xml:space="preserve">
+    <value>The last saved transaction ({0}) still cannot be read back: {1}. Nothing more is written to the disk; changes made since then were not saved.</value>
+  </data>
   <data name="Write.WrongObjectType" xml:space="preserve">
     <value>block {0}: wrong object type</value>
   </data>
@@ -1424,5 +1685,20 @@
   </data>
   <data name="Zlib.Short" xml:space="preserve">
     <value>zlib data shorter than expected</value>
+  </data>
+  <data name="Er.ExtentAhead" xml:space="preserve">
+    <value>a file part at offset {0} lies beyond the encryption progress ({1}) but is marked encrypted</value>
+  </data>
+  <data name="Er.UnalignedOffset" xml:space="preserve">
+    <value>the encryption progress offset {0} is not a whole block</value>
+  </data>
+  <data name="Er.UnknownFlags" xml:space="preserve">
+    <value>unsupported encryption change in progress (flags 0x{0:x})</value>
+  </data>
+  <data name="Er.UnknownVersion" xml:space="preserve">
+    <value>unknown encryption rolling state (magic 0x{0:x8}, version {1})</value>
+  </data>
+  <data name="Er.Unreadable" xml:space="preserve">
+    <value>encryption rolling state object {0} cannot be read</value>
   </data>
 </root>

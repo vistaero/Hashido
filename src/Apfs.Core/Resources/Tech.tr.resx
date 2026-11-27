@@ -42,6 +42,9 @@
   <data name="BTree.RootNotMarked" xml:space="preserve">
     <value>B-ağacı kökü kök olarak işaretlenmemiş (blok {0})</value>
   </data>
+  <data name="BTree.SharedChild" xml:space="preserve">
+    <value>B-ağacı düğümüne bir taramada iki kez inildi (paylaşılan çocuk, blok {0})</value>
+  </data>
   <data name="BTree.TooDeep" xml:space="preserve">
     <value>B-ağacı çok derin (döngü olabilir)</value>
   </data>
@@ -81,8 +84,14 @@
   <data name="Check.BlockedOut" xml:space="preserve">
     <value>kapsayıcı yeniden boyutlandırılıyor (engelli aralık); desteklenmiyor</value>
   </data>
+  <data name="Check.ChunkBitmapTail" xml:space="preserve">
+    <value>alan yöneticisi: parça {0}: bitmap'te parçanın ötesinde dolu bit var</value>
+  </data>
   <data name="Check.ChunkFreeCount" xml:space="preserve">
     <value>alan yöneticisi: parça {0} boş sayısı {1}, bitmap {2}</value>
+  </data>
+  <data name="Check.CompressedNoDecmpfs" xml:space="preserve">
+    <value>{0}: inode {1}: sıkıştırılmış işaretli ama decmpfs özniteliği yok</value>
   </data>
   <data name="Check.ContainerWarning" xml:space="preserve">
     <value>kapsayıcı: {0}</value>
@@ -90,11 +99,35 @@
   <data name="Check.Counters" xml:space="preserve">
     <value>{0}: sayaçlar dosya/klasör/sembolik/diğer {1}/{2}/{3}/{4}, sayılan {5}/{6}/{7}/{8}</value>
   </data>
+  <data name="Check.CryptoIdOnPlain" xml:space="preserve">
+    <value>{0}: nesne {1}: şifresiz birimde crypto id {2}</value>
+  </data>
+  <data name="Check.CryptoStateOnPlain" xml:space="preserve">
+    <value>{0}: şifresiz birimde crypto_state kaydı {1}</value>
+  </data>
+  <data name="Check.DecmpfsNotCompressed" xml:space="preserve">
+    <value>{0}: inode {1}: decmpfs özniteliği var ama sıkıştırılmış işaretli değil</value>
+  </data>
   <data name="Check.DeviceFreeCount" xml:space="preserve">
     <value>alan yöneticisi: aygıt boş sayacı {0}, bitmap'ler {1}</value>
   </data>
   <data name="Check.DirChildCount" xml:space="preserve">
     <value>{0}: klasör {1} çocuk sayısı {2}, girdiler {3}</value>
+  </data>
+  <data name="Check.DirEntryNameNotUtf8" xml:space="preserve">
+    <value>{0}: klasör {1}: bir girdinin adı geçerli UTF-8 değil</value>
+  </data>
+  <data name="Check.PartitionOverlapsOther" xml:space="preserve">
+    <value>bölüm tablosu: APFS bölümü başka (APFS olmayan) bir bölümle örtüşüyor</value>
+  </data>
+  <data name="Check.VolumeUuidRepeated" xml:space="preserve">
+    <value>{1} ve {2} birimlerinin UUID'si aynı ({0})</value>
+  </data>
+  <data name="Check.DirEntryNameInvalid" xml:space="preserve">
+    <value>{0}: klasör {1}: bir girdinin adı geçersiz (NUL eksik ya da içeride, ".", "..", "/" ya da çok uzun)</value>
+  </data>
+  <data name="Check.DirParentChain" xml:space="preserve">
+    <value>{0}: klasör {1}: üst zinciri köke varmıyor (parent_id {2})</value>
   </data>
   <data name="Check.DirMultiplyReferenced" xml:space="preserve">
     <value>{0}: klasör {1} {2} yerden gösteriliyor</value>
@@ -128,6 +161,9 @@
   </data>
   <data name="Check.EntryVirtualParentNotRoot" xml:space="preserve">
     <value>{0}: "{1}" sanal üst klasörde ama kök değil</value>
+  </data>
+  <data name="Check.EphemeralOidReused" xml:space="preserve">
+    <value>checkpoint: geçici nesne kimliği {0} iki yapıda kullanılıyor</value>
   </data>
   <data name="Check.EvictMapping" xml:space="preserve">
     <value>kapsayıcıda tahliye eşleme ağacı var; desteklenmiyor</value>
@@ -201,20 +237,68 @@
   <data name="Check.Incomplete" xml:space="preserve">
     <value>denetim tamamlanamadı: {0}</value>
   </data>
+  <data name="Check.IndexKeyNotFirst" xml:space="preserve">
+    <value>{0}: düğüm {1}: ilk anahtar üstteki ayraçla aynı değil</value>
+  </data>
   <data name="Check.InodeLinkCount" xml:space="preserve">
     <value>{0}: inode {1} bağlantı sayısı {2}, girdiler {3}</value>
+  </data>
+  <data name="Check.InodeNoName" xml:space="preserve">
+    <value>{0}: inode {1}: ad alanı yok</value>
   </data>
   <data name="Check.InodeNotFileHasStream" xml:space="preserve">
     <value>{0}: inode {1} dosya değil ama veri akışı var</value>
   </data>
+  <data name="Check.InodeXFieldFlags" xml:space="preserve">
+    <value>{0}: inode {1}: seyrek ya da temizlenebilir bayrağı genişletilmiş alanlarla uyuşmuyor</value>
+  </data>
+  <data name="Check.InodeXFields" xml:space="preserve">
+    <value>{0}: inode {1}: genişletilmiş alanlar biçimsiz ({2})</value>
+  </data>
   <data name="Check.IpBitmapDiff" xml:space="preserve">
     <value>iç havuz: {0} blokta bitmap ile kullanım farklı</value>
+  </data>
+  <data name="Check.IpBitmapTail" xml:space="preserve">
+    <value>alan yöneticisi: iç havuz bitmap'inde havuzun ötesinde dolu bit var</value>
   </data>
   <data name="Check.IpBlockUsedTwice" xml:space="preserve">
     <value>{0}: iç havuz bloğu {1} iki kez kullanılıyor</value>
   </data>
+  <data name="Check.IpFreeListLoops" xml:space="preserve">
+    <value>alan yöneticisi: iç havuz boş bitmap listesi döngüye giriyor</value>
+  </data>
+  <data name="Check.IpFreeListOutside" xml:space="preserve">
+    <value>alan yöneticisi: iç havuz boş bitmap listesi sınırın dışında ({0}, {1})</value>
+  </data>
+  <data name="Check.IpFreeListTail" xml:space="preserve">
+    <value>alan yöneticisi: iç havuz boş bitmap listesi kuyruğunda bitmiyor</value>
+  </data>
+  <data name="Check.IpPoolSize" xml:space="preserve">
+    <value>alan yöneticisi: iç havuz boyu {0}, parça + CIB + CAB sayısının üç katı değil</value>
+  </data>
+  <data name="Check.IpRingCounts" xml:space="preserve">
+    <value>alan yöneticisi: iç havuz bitmap halkası {0} blok, {1} bitmap için ({2} kullanımda); beklenen 16 kopya</value>
+  </data>
+  <data name="Check.IpUsedSlotFree" xml:space="preserve">
+    <value>alan yöneticisi: iç havuz bitmap yuvası {0} kullanımda ama boş listede, sınırın dışında ya da iki kez kullanılıyor</value>
+  </data>
+  <data name="Check.KeyOrderTotal" xml:space="preserve">
+    <value>{0}: toplam {1} anahtar sırası sorunu</value>
+  </data>
+  <data name="Check.KeysOutOfOrder" xml:space="preserve">
+    <value>{0}: düğüm {1}: anahtarlar sırasız</value>
+  </data>
+  <data name="Check.KeysRepeated" xml:space="preserve">
+    <value>{0}: düğüm {1}: anahtar tekrarlanıyor</value>
+  </data>
   <data name="Check.LabelBlock0" xml:space="preserve">
     <value>blok 0</value>
+  </data>
+  <data name="Check.LabelCab" xml:space="preserve">
+    <value>~7 TB üstü diskin parça bilgisi adres blokları</value>
+  </data>
+  <data name="Check.LabelCheckpointMap" xml:space="preserve">
+    <value>checkpoint haritası</value>
   </data>
   <data name="Check.LabelChunkBitmap" xml:space="preserve">
     <value>parça bitmap'i</value>
@@ -240,6 +324,9 @@
   <data name="Check.LabelExtentrefNode" xml:space="preserve">
     <value>extentref düğümü</value>
   </data>
+  <data name="Check.LabelExtentrefTree" xml:space="preserve">
+    <value>extentref ağacı</value>
+  </data>
   <data name="Check.LabelFextTree" xml:space="preserve">
     <value>fext ağacı</value>
   </data>
@@ -257,6 +344,9 @@
   </data>
   <data name="Check.LabelFsNode" xml:space="preserve">
     <value>fs düğümü {0}</value>
+  </data>
+  <data name="Check.LabelFsTree" xml:space="preserve">
+    <value>dosya sistemi ağacı</value>
   </data>
   <data name="Check.LabelIntegrityMeta" xml:space="preserve">
     <value>bütünlük meta verisi</value>
@@ -276,8 +366,14 @@
   <data name="Check.LabelNode" xml:space="preserve">
     <value>{0} düğümü</value>
   </data>
+  <data name="Check.LabelRevert" xml:space="preserve">
+    <value>önceki bir hâle bekleyen geri dönüş</value>
+  </data>
   <data name="Check.LabelSnapMetaNode" xml:space="preserve">
     <value>snap_meta düğümü</value>
+  </data>
+  <data name="Check.LabelSnapMetaTree" xml:space="preserve">
+    <value>snap_meta ağacı</value>
   </data>
   <data name="Check.LabelSnapshotExtension" xml:space="preserve">
     <value>anlık görüntü uzantısı</value>
@@ -309,8 +405,14 @@
   <data name="Check.LeakedUnchecked" xml:space="preserve">
     <value>alan yöneticisi: {0} blok denetlenmeyen yapılara ait görünüyor (dolu işaretli, sahibi çözümlenmedi)</value>
   </data>
+  <data name="Check.MarkedTooMuch" xml:space="preserve">
+    <value>{0}: kapsayıcıdaki bloklardan fazlası sahipleniliyor (üst üste binen yapılar); sahiplik daha fazla denetlenmiyor</value>
+  </data>
   <data name="Check.MarkedUsedNotUsed" xml:space="preserve">
     <value>dolu işaretli ama kullanılmıyor</value>
+  </data>
+  <data name="Check.MemoryBudget" xml:space="preserve">
+    <value>tam denetim yaklaşık {0} MiB bellek isteyebilir, güvenli bütçe {1} MiB'ı aşıyor; yine de deneniyor</value>
   </data>
   <data name="Check.MissingEncryptedFlag" xml:space="preserve">
     <value>{0}: şifreli birimde şifreli işaretlenmemiş düğüm {1}</value>
@@ -320,6 +422,18 @@
   </data>
   <data name="Check.NextObjId" xml:space="preserve">
     <value>{0}: sonraki nesne kimliği {1}, kullanılan en büyük {2}</value>
+  </data>
+  <data name="Check.NextXid" xml:space="preserve">
+    <value>kapsayıcı süper bloğu: sonraki işlem kimliği {0} geçerli olandan ({1}) büyük değil</value>
+  </data>
+  <data name="Check.OidNotBelowNext" xml:space="preserve">
+    <value>{0}: nesne kimliği {1} kapsayıcının sonraki nesne kimliğinden ({2}) küçük değil</value>
+  </data>
+  <data name="Check.OidNotBelowNextTotal" xml:space="preserve">
+    <value>{0}: toplam {1} nesne kimliği kapsayıcının sonraki nesne kimliğinden ({2}) küçük değil</value>
+  </data>
+  <data name="Check.OmapFlags" xml:space="preserve">
+    <value>{0}: nesne haritası bayrakları geçersiz (0x{1:X})</value>
   </data>
   <data name="Check.OmapFutureXid" xml:space="preserve">
     <value>kapsayıcı omap: kayıt {0} gelecekteki bir işlemden (xid {1})</value>
@@ -333,17 +447,29 @@
   <data name="Check.OmapNonVolumeRecords" xml:space="preserve">
     <value>kapsayıcı omap'inde birim olmayan kayıtlar var</value>
   </data>
+  <data name="Check.OmapRecordFlags" xml:space="preserve">
+    <value>{0}: nesne {1}: kayıt bayrakları geçersiz (0x{2:X})</value>
+  </data>
   <data name="Check.OmapRecordSize" xml:space="preserve">
     <value>kapsayıcı omap: kayıt {0} boyutu {1}</value>
   </data>
   <data name="Check.OmapRecordUnused" xml:space="preserve">
     <value>{0}: omap kaydı {1} hiçbir düğüm tarafından kullanılmıyor</value>
   </data>
+  <data name="Check.OnlyLinkName" xml:space="preserve">
+    <value>{0}: inode {1}: adı tek dizin girdisininkinden ("{2}") farklı</value>
+  </data>
+  <data name="Check.OnlyLinkParent" xml:space="preserve">
+    <value>{0}: inode {1}: parent_id {2}, tek dizin girdisi {3} içinde</value>
+  </data>
   <data name="Check.OrphanDstreamRecord" xml:space="preserve">
     <value>{0}: sahipsiz veri akışı kaydı {1}</value>
   </data>
   <data name="Check.OrphanExtents" xml:space="preserve">
     <value>{0}: sahipsiz extent'ler (veri akışı {1})</value>
+  </data>
+  <data name="Check.OrphanHasSiblings" xml:space="preserve">
+    <value>{0}: inode {1}: özel klasörde ama kardeş kaydı var</value>
   </data>
   <data name="Check.OwnershipDifferent" xml:space="preserve">
     <value>FARKLI</value>
@@ -372,6 +498,12 @@
   <data name="Check.PhysExtentsOverlap" xml:space="preserve">
     <value>{0}: fiziksel extent'ler üst üste ({1})</value>
   </data>
+  <data name="Check.PrimaryLinkName" xml:space="preserve">
+    <value>{0}: inode {1}: adı birincil bağlantınınkinden (kardeş {2}, "{3}") farklı</value>
+  </data>
+  <data name="Check.PrimaryLinkParent" xml:space="preserve">
+    <value>{0}: inode {1}: parent_id {2}, birincil bağlantının üstü {3}</value>
+  </data>
   <data name="Check.RangeOutside" xml:space="preserve">
     <value>{0}: blok aralığı {1}+{2} kapsayıcının dışında</value>
   </data>
@@ -380,6 +512,57 @@
   </data>
   <data name="Check.RootDirMissing" xml:space="preserve">
     <value>{0}: kök klasör yok</value>
+  </data>
+  <data name="Check.RuleTotal" xml:space="preserve">
+    <value>{0}: {1}: toplam {2} kayıt</value>
+  </data>
+  <data name="Check.SiblingCount" xml:space="preserve">
+    <value>{0}: inode {1}: bağlantı sayısı {2}, kardeş kaydı {3}</value>
+  </data>
+  <data name="Check.SiblingIdInvalid" xml:space="preserve">
+    <value>{0}: inode {1}: geçersiz kardeş kimliği {2}</value>
+  </data>
+  <data name="Check.SiblingInodeMissing" xml:space="preserve">
+    <value>{0}: olmayan inode {1} için kardeş kaydı</value>
+  </data>
+  <data name="Check.SiblingMismatch" xml:space="preserve">
+    <value>{0}: inode {1}: kardeş {2}: kardeş kaydı dizin girdisiyle uyuşmuyor</value>
+  </data>
+  <data name="Check.SiblingNoMap" xml:space="preserve">
+    <value>{0}: inode {1}: kardeş {2}: kardeş haritası yok</value>
+  </data>
+  <data name="Check.SiblingRecordBad" xml:space="preserve">
+    <value>{0}: nesne {1}: kardeş kaydı biçimsiz</value>
+  </data>
+  <data name="Check.SiblingUnmatched" xml:space="preserve">
+    <value>{0}: inode {1}: kardeş {2}: dizin girdisi ya da kardeş kaydı eksik</value>
+  </data>
+  <data name="Check.SmArrayOffset" xml:space="preserve">
+    <value>alan yöneticisi: {0} dizisi ({1} ofsetinde) yapıya biniyor, hizasız ya da nesnenin dışına taşıyor</value>
+  </data>
+  <data name="Check.SmArraysOverlap" xml:space="preserve">
+    <value>alan yöneticisi: {0} ve {1} dizileri üst üste biniyor</value>
+  </data>
+  <data name="Check.SmChunkBlocks" xml:space="preserve">
+    <value>alan yöneticisi: parçalar {0} blok kapsıyor, aygıtta {1}</value>
+  </data>
+  <data name="Check.SmChunkGeometry" xml:space="preserve">
+    <value>alan yöneticisi: parça {0} (adres {1}, {2} blok) ardışık değil ya da boyu yanlış</value>
+  </data>
+  <data name="Check.SmChunksPerCib" xml:space="preserve">
+    <value>alan yöneticisi: parça bilgisi bloğu başına {0} parça, beklenen {1}</value>
+  </data>
+  <data name="Check.SmCibChunks" xml:space="preserve">
+    <value>alan yöneticisi: parça bilgisi bloğu {0}: {1} parça</value>
+  </data>
+  <data name="Check.SmCibsPerCab" xml:space="preserve">
+    <value>alan yöneticisi: adres bloğu başına {0} parça bilgisi bloğu, beklenen {1}</value>
+  </data>
+  <data name="Check.SmDeviceCount" xml:space="preserve">
+    <value>alan yöneticisi: blok sayısına göre {0} sayısı ({1}) yanlış</value>
+  </data>
+  <data name="Check.SmStructSize" xml:space="preserve">
+    <value>alan yöneticisi: yapı boyu {0}, beklenen 2520</value>
   </data>
   <data name="Check.SpacemanBlockCount" xml:space="preserve">
     <value>alan yöneticisi: blok sayısı kapsayıcıdan farklı</value>
@@ -407,6 +590,9 @@
   </data>
   <data name="Check.Tier2QueueNotEmpty" xml:space="preserve">
     <value>ikinci katman boş kuyruğu dolu (Fusion desteklenmiyor)</value>
+  </data>
+  <data name="Check.UncompressedSizeWithoutFlag" xml:space="preserve">
+    <value>{0}: inode {1}: bayrağı olmadan sıkıştırılmamış boy yazılı</value>
   </data>
   <data name="Check.UnknownEphemeral" xml:space="preserve">
     <value>tanınmayan geçici nesne: oid {0}, tür 0x{1:x8}/{2}</value>
@@ -446,6 +632,15 @@
   </data>
   <data name="Check.VolumeNotOpened" xml:space="preserve">
     <value>{0}: açılamadı (şifreli olabilir); dosya sistemi ağacı denetlenmedi, blok sahipliği denetlendi</value>
+  </data>
+  <data name="Check.VolumeOpenFailed" xml:space="preserve">
+    <value>{0}: birim açılamadı: {1}</value>
+  </data>
+  <data name="Check.VolumeUnsupported" xml:space="preserve">
+    <value>{0}: birim desteklenmeyen bir yapı kullanıyor: {1}</value>
+  </data>
+  <data name="Check.XattrKind" xml:space="preserve">
+    <value>{0}: inode {1}: bir öznitelik ne yalnız gömülü ne yalnız veri akışı</value>
   </data>
   <data name="Check.XattrStreamHasRefRecord" xml:space="preserve">
     <value>{0}: öznitelik akışı {1} için başvuru kaydı olmamalı</value>
@@ -518,6 +713,15 @@
   </data>
   <data name="Container.OldApfsVersion" xml:space="preserve">
     <value>eski APFS sürümü (macOS 10.12 öncesi geliştirici sürümü)</value>
+  </data>
+  <data name="Container.CandidateUnreadable" xml:space="preserve">
+    <value>Kontrol noktası alanının {0} bloğu yeniden denemede de okunamadı (ilki: {1}); daha yeni bir kontrol noktası atlanmış olabilir.</value>
+  </data>
+  <data name="Container.ForeignCheckpointSkipped" xml:space="preserve">
+    <value>Kontrol noktası alanında başka bir kapsayıcının ({1}) daha yeni süper bloğu (xid {0}) atlandı.</value>
+  </data>
+  <data name="Container.VolumeUuidRepeated" xml:space="preserve">
+    <value>kapsayıcıdaki başka bir birim (nesne {1}) aynı UUID'ye sahip ({0})</value>
   </data>
   <data name="Container.OlderCheckpointUsed" xml:space="preserve">
     <value>En yeni kontrol noktası okunamadı; daha eski bir kontrol noktası (xid {0}) kullanılıyor. Son değişikliklerin bir kısmı görünmeyebilir.</value>
@@ -597,6 +801,9 @@
   <data name="Cp.SuperblockNotAtEnd" xml:space="preserve">
     <value>süper blok tanımlayıcı aralığının sonunda değil (blok {0}, beklenen {1})</value>
   </data>
+  <data name="Crypto.IterationBudget" xml:space="preserve">
+    <value>kilit açma kayıtları toplam {0} parola yinelemesi istiyor (en çok {1} kabul edilir)</value>
+  </data>
   <data name="Crypto.KekIterationsInvalid" xml:space="preserve">
     <value>KEK yineleme sayısı geçersiz</value>
   </data>
@@ -621,8 +828,17 @@
   <data name="Crypto.PasswordHint" xml:space="preserve">
     <value>ipucu: {0}</value>
   </data>
+  <data name="Crypto.TooManyUnlockRecords" xml:space="preserve">
+    <value>birimin anahtar deposunda {0} kilit açma kaydı var (en çok {1} kabul edilir)</value>
+  </data>
+  <data name="Crypto.UnlockCancelled" xml:space="preserve">
+    <value>kilit açma durduruldu: disk çıkarıldı</value>
+  </data>
   <data name="Crypto.VekLength" xml:space="preserve">
     <value>VEK 32 bayt olmalı</value>
+  </data>
+  <data name="Crypto.VekLengthUnsupported" xml:space="preserve">
+    <value>parola doğru ama birimin anahtarı {0} bayt ({1} bekleniyordu); bu şifreleme türü desteklenmiyor</value>
   </data>
   <data name="Crypto.VolumeKeyNotInContainer" xml:space="preserve">
     <value>birimin şifreleme anahtarı kapsayıcıda yok (donanım şifrelemesi olabilir)</value>
@@ -650,6 +866,12 @@
   </data>
   <data name="Decmpfs.InvalidBlockTable" xml:space="preserve">
     <value>sıkıştırılmış blok tablosu geçersiz</value>
+  </data>
+  <data name="Decmpfs.SizeMismatch" xml:space="preserve">
+    <value>inode'daki açılmış boy ({0}) sıkıştırma başlığındakinden ({1}) farklı</value>
+  </data>
+  <data name="Decmpfs.InlineSizeExceedsData" xml:space="preserve">
+    <value>sıkıştırma başlığındaki boy ({0} bayt) {1} baytlık öznitelik verisinden açılamaz</value>
   </data>
   <data name="Decmpfs.InvalidFileSize" xml:space="preserve">
     <value>sıkıştırılmış dosya boyutu geçersiz</value>
@@ -906,6 +1128,9 @@
   <data name="Fs.EntryUnreadable" xml:space="preserve">
     <value>"{0}" okunamadı: {1}</value>
   </data>
+  <data name="Fs.NamesSuffixed" xml:space="preserve">
+    <value>Bir klasörde {0} Mac adı Windows'ta başka bir girdiyle aynı ada düşüyor (ya da geri çevrilemiyor); uzantıdan önce bir sayı eklenerek gösteriliyor (ilki: "{1}"); yazılabilir sürücüde bu girdiler değiştirilemez.</value>
+  </data>
   <data name="Fs.NoFreeDriveLetter" xml:space="preserve">
     <value>boş sürücü harfi yok (F: – Z: arası hepsi kullanımda)</value>
   </data>
@@ -1143,6 +1368,9 @@
   <data name="Records.XFieldsOverflow" xml:space="preserve">
     <value>genişletilmiş alanlar kayda sığmıyor</value>
   </data>
+  <data name="Sm.ArrayOutside" xml:space="preserve">
+    <value>Alan yöneticisi: {0} ofsetindeki dizi nesnenin dışında.</value>
+  </data>
   <data name="Sm.BlockOutOfRange" xml:space="preserve">
     <value>blok {0} alan yöneticisinin kapsamı dışında</value>
   </data>
@@ -1151,6 +1379,9 @@
   </data>
   <data name="Sm.CabWrongIndex" xml:space="preserve">
     <value>CAB {0}: sıra numarası yanlış</value>
+  </data>
+  <data name="Sm.ChunkInvalid" xml:space="preserve">
+    <value>alan yöneticisinin {0} parçası bir parçadan büyük ya da kapsayıcının dışında</value>
   </data>
   <data name="Sm.CibCountTooBig" xml:space="preserve">
     <value>CIB {0}: parça sayısı bloğa sığmıyor</value>
@@ -1167,6 +1398,9 @@
   <data name="Sm.FreeQueueTreeNotMapped" xml:space="preserve">
     <value>boş kuyruk ağacı {0} checkpoint haritasında yok</value>
   </data>
+  <data name="Sm.InternalPoolInvalid" xml:space="preserve">
+    <value>alan yöneticisinin iç havuzu ya da bitmap'i kapsayıcının dışında ya da boyu tutmuyor</value>
+  </data>
   <data name="Sm.IpBitmapIndexOutside" xml:space="preserve">
     <value>iç havuz bitmap indeksi halkanın dışında</value>
   </data>
@@ -1175,6 +1409,9 @@
   </data>
   <data name="Sm.SizeInconsistent" xml:space="preserve">
     <value>alan yöneticisinin blok/parça boyutu tutarsız</value>
+  </data>
+  <data name="Sm.TooManyChunks" xml:space="preserve">
+    <value>alan yöneticisi kapsayıcının alabileceğinden çok parça listeliyor</value>
   </data>
   <data name="Sm.WrongType" xml:space="preserve">
     <value>alan yöneticisi nesnesinin türü yanlış</value>
@@ -1260,8 +1497,14 @@
   <data name="VolWriter.ExtentWithoutCryptoId" xml:space="preserve">
     <value>veri akışı {0}: şifreli birimde crypto_id'siz extent</value>
   </data>
+  <data name="VolWriter.FileTooLarge" xml:space="preserve">
+    <value>dosya çok büyük: boyut ya da konum bu sürümün yazabildiği en büyük boyu aşıyor ({0} bayt)</value>
+  </data>
   <data name="VolWriter.InvalidName" xml:space="preserve">
     <value>geçersiz ad</value>
+  </data>
+  <data name="VolWriter.InvalidNameEscape" xml:space="preserve">
+    <value>ad U+F680–U+F6FF aralığından karakter içeriyor (geçersiz Mac adlarını göstermeye ayrılmış)</value>
   </data>
   <data name="VolWriter.InvalidNameChar" xml:space="preserve">
     <value>adda geçersiz karakter</value>
@@ -1290,6 +1533,9 @@
   <data name="VolWriter.OmapDeleted" xml:space="preserve">
     <value>nesne {0} silinmiş işaretli</value>
   </data>
+  <data name="VolWriter.ParentChainLoop" xml:space="preserve">
+    <value>klasörün üst zinciri köke varmıyor (inode {0})</value>
+  </data>
   <data name="VolWriter.PerFileKeys" xml:space="preserve">
     <value>dosya başına anahtarlı şifreli birime yazılmaz</value>
   </data>
@@ -1302,6 +1548,9 @@
   <data name="VolWriter.ViewTooLate" xml:space="preserve">
     <value>görüntü, oturumun ilk değişikliğinden önce kurulmalı</value>
   </data>
+  <data name="Volume.DataBeyondAllocation" xml:space="preserve">
+    <value>dosya {0} bayt ama ona yalnız {1} bayt ayrılmış (seyrek dosya değil)</value>
+  </data>
   <data name="Volume.DirEntryKeyLength" xml:space="preserve">
     <value>dizin girdisi anahtarının uzunluğu tutarsız</value>
   </data>
@@ -1310,6 +1559,9 @@
   </data>
   <data name="Volume.DirectoryAsFile" xml:space="preserve">
     <value>klasör dosya olarak açılamaz</value>
+  </data>
+  <data name="Volume.EncryptionChangeUnreadable" xml:space="preserve">
+    <value>bu birimde macOS'un şifreleme değişikliği bitmemiş ve durumu anlaşılamadı ({0}); hiçbir dosya yanlış içerikle gösterilmesin diye şifreli dosya verisi okunmuyor. Şifrelemeyi macOS'un bitirmesini bekleyin (diski Mac'e takıp bekleyin)</value>
   </data>
   <data name="Volume.ExtentOutsideDisk" xml:space="preserve">
     <value>dosya parçası diskin dışını gösteriyor</value>
@@ -1407,6 +1659,15 @@
   <data name="Write.WrittenCheckpointInvalid" xml:space="preserve">
     <value>yazılan checkpoint geçersiz: {0}</value>
   </data>
+  <data name="Write.CommitUnverified" xml:space="preserve">
+    <value>Değişiklikler kaydedildi (işlem {0}) ama yeni kayıt noktası geri okunamadı: {1}</value>
+  </data>
+  <data name="Write.Block0Failed" xml:space="preserve">
+    <value>Değişiklikler kaydedildi (işlem {0}) ama düzgün kapatma işareti (blok 0) yazılamadı: {1}. Disk son kayıt noktasından açılır.</value>
+  </data>
+  <data name="Write.CommitStillUnverified" xml:space="preserve">
+    <value>Son kaydedilen işlem ({0}) hâlâ geri okunamıyor: {1}. Diske başka bir şey yazılmıyor; o zamandan beri yapılan değişiklikler kaydedilmedi.</value>
+  </data>
   <data name="Write.WrongObjectType" xml:space="preserve">
     <value>blok {0}: nesne türü yanlış</value>
   </data>
@@ -1424,5 +1685,20 @@
   </data>
   <data name="Zlib.Short" xml:space="preserve">
     <value>zlib verisi beklenenden kısa</value>
+  </data>
+  <data name="Er.ExtentAhead" xml:space="preserve">
+    <value>{0} ofsetindeki dosya parçası şifreleme ilerlemesinin ({1}) ötesinde ama şifreli işaretli</value>
+  </data>
+  <data name="Er.UnalignedOffset" xml:space="preserve">
+    <value>şifreleme ilerleme ofseti {0} tam blok değil</value>
+  </data>
+  <data name="Er.UnknownFlags" xml:space="preserve">
+    <value>desteklenmeyen bir şifreleme değişikliği sürüyor (bayraklar 0x{0:x})</value>
+  </data>
+  <data name="Er.UnknownVersion" xml:space="preserve">
+    <value>bilinmeyen şifreleme dönüşüm durumu (imza 0x{0:x8}, sürüm {1})</value>
+  </data>
+  <data name="Er.Unreadable" xml:space="preserve">
+    <value>şifreleme dönüşüm durumu nesnesi {0} okunamıyor</value>
   </data>
 </root>

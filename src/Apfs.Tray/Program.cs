@@ -10,8 +10,8 @@ namespace Apfs.Tray;
 // apfs-tray [--show] [--pipe ad] [--restart]
 //   --show: ana pencereyi aç (Başlat menüsü kısayolu). Program zaten çalışıyorsa açık örneğin penceresi öne gelir.
 //   --pipe: yalnızca geliştirme; `apfs-service --console --pipe ad` ile çalışan hizmete bağlanır.
-//   --restart: dil ya da tasarım değişince kendini yeniden başlatan örnek; eskisi kapanana kadar (en çok 10 sn) tek örnek
-//     kilidini bekler.
+//   --restart [--from PID]: dil ya da tasarım değişince kendini yeniden başlatan örnek; eskisinin (PID) çıkmasını en çok 60 sn,
+//     PID'siz (eski sürüm başlattıysa) tek örnek kilidini en çok 10 sn bekler (RestartHandoff).
 //   --updated: setup güncelleme kipinin sonunda açtı (1.8.0): "güncellendi" balonu (kurulu sürüm indirilene ulaştıysa).
 //   --forget-passwords: kaldırıcı (parolaPlan 2.4): bu kullanıcının "Bu bilgisayarda hatırla" kayıtlarını siler ve çıkar. Tek
 //     örnek kilidinden ve arayüzden ÖNCE işlenir: açık bir tepsi örneği varken de bekleme olmadan çalışır.
@@ -41,6 +41,8 @@ internal static class Program
         PipeProtocol.ClientLanguage = language.Name;
         if (shotLang is { Length: > 0 }) // düzenek: sayılar da görüntünün dilinde (README görselleri; 1,28 / 1.28)
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture = CultureInfo.CreateSpecificCulture(shotLang);
+        // Bölge ayarı da her istekte (1.8.2): hizmetin yazdığı disk başlığı birim satırıyla aynı sayı biçiminde olsun ("1,81 TB")
+        PipeProtocol.ClientCulture = CultureInfo.CurrentCulture.Name;
 
         // Görüntü düzeneği: kurulu programda (varsayılan kanal) etkisiz; tek örnek kilidi ve tepsi simgesi yok (Ek A S5)
         var shot = dev ? Dev.ShotOptions.Parse(args) : null;
@@ -53,11 +55,9 @@ internal static class Program
         // Oturum başına tek örnek
         using var mutex = new Mutex(initiallyOwned: true, @"Local\APFSforWindows.Tray" + suffix, out bool first);
         using var showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\APFSforWindows.Tray.Show" + suffix);
+        // Yeniden başlatma: eski örneğin (--from PID) çıkması en çok 60 sn beklenir (1.9.1; önceden kilit 10 sn, yükte sessiz çıkış)
         if (!first && args.Contains("--restart"))
-        {
-            try { first = mutex.WaitOne(TimeSpan.FromSeconds(10)); }
-            catch (AbandonedMutexException) { first = true; } // eski örnek kilidi bırakmadan kapandı: kilit artık bizim
-        }
+            first = Apfs.Windows.Tray.RestartHandoff.Acquire(mutex, Apfs.Windows.Tray.RestartHandoff.OldPid(args), Apfs.Windows.Tray.RestartHandoff.OldExitLimit);
         if (!first)
         {
             if (show) showEvent.Set();

@@ -6,7 +6,9 @@ using Apfs.Util;
 namespace Apfs.Partitions;
 
 /// <summary>Bir aygıtta bulunan APFS kapsayıcısının konumu.</summary>
-public sealed record ApfsPartition(long Offset, long Length, int Index, string Description);
+/// <param name="OverlapsOther">GPT'de APFS DIŞI bir girdiyle örtüşüyor (1.9.1): bozuk tablo. Bölüm gizlenmez (kullanıcı
+/// verisinden ayrılmasın), salt okunur açılır; yazmaya açılmaz (yazıcı öbür bölümün verisine yazabilirdi).</param>
+public sealed record ApfsPartition(long Offset, long Length, int Index, string Description, bool OverlapsOther = false);
 
 /// <summary>GPT bölüm tablosunu okuyup APFS bölümlerini bulur. Bölüm tablosu yoksa aygıtın tamamını kapsayıcı kabul eder.</summary>
 public static class PartitionLocator
@@ -14,7 +16,12 @@ public static class PartitionLocator
     public static readonly Guid ApfsPartitionType = Guid.Parse("7C3457EF-0000-11AA-AA11-00306543ECAC");
 
     private static readonly byte[] GptSignature = "EFI PART"u8.ToArray();
-    private const int MaxPartitionEntries = 1024;
+    /// <summary>
+    /// Girdi tablosunun en büyük boyu: önceki sınırın (1024 girdi × 4096 bayt) en büyük tablosu. 1024'ten çok girdili geçerli
+    /// GPT artık okunur (APFS olmayan böyle bir diske "okunamadı" denmesin); bunu aşan tablo bozuk sayılır.
+    /// </summary>
+    private const long MaxTableBytes = 4L << 20;
+    private const int MaxApfsPartitions = 1024;
 
     public static IReadOnlyList<ApfsPartition> FindApfsPartitions(IBlockDevice device)
     {
@@ -34,7 +41,7 @@ public static class PartitionLocator
             // Birincil imza kayıpsa, MBR'ye çevrilmiş disklerde kalmış eski bir GPT yedeğini kullanma.
             if (!hasPrimary && !(protectiveMbr ??= HasProtectiveMbr(device, ref readError))) continue;
 
-            var partitions = ParseGpt(device, hasPrimary ? primary : null, sector, ref readError, out string candidateProblem);
+            var partitions = ParseGpt(device, hasPrimary ? primary : null, sector, ref readError, out string? candidateProblem);
             if (partitions is not null) return partitions;
             problem ??= candidateProblem;
         }
@@ -95,14 +102,30 @@ public static class PartitionLocator
         }
     }
 
-    /// <summary>Geçerli birincil GPT tercih edilir. Birincil açılamazsa bildirilen yedek konumu ve son sektör denenir.</summary>
+    /// <summary>
+    /// GPT'yi (açık depo bildirimi #3, 1.8.0; PR #5) Windows/macOS gibi doğrular: başlık boyutu, başlık CRC'si, kendi konumu,
+    /// kullanılabilir aralık (FirstUsable ≥ 2), girdi tablosunun yeri (birincilde FirstUsable'dan önce, yedekte LastUsable ile yedek
+    /// başlık arasında) ve CRC'si. Birincil başlık geçerliyse yedeğe hiç bakılmaz (yedeğin yeri/CRC'si bugün açılan bir diski
+    /// kapatmasın: ör. büyütülmüş görüntüde yedek sonda değildir). Birincil geçersiz, okunamıyor ya da imzası yoksa (bu son
+    /// durumda yalnız koruyucu MBR varsa; çağıran denetler) yedek başlık (birincilin <c>AlternateLBA</c>'sı diskin içindeyse
+    /// orası, değilse son sektör) kullanılır; ikisi de olmazsa <c>null</c>. <paramref name="problem"/> yalnız bir GPT imzası
+    /// görüldüyse doludur: birincilin imzası yok ve yedekte de yoksa (koruyucu MBR'si kalmış, yarım silinmiş disk) bu bir GPT
+    /// değildir, "APFS yok" sayılır (PR #5'ten önceki davranış). LastUsable'ın disk sonuyla ilişkisi BİLEREK
+    /// denetlenmez (kesilmiş görüntü / olduğundan küçük görünen disk kapanmasın); diskin dışına taşan girdiyi
+    /// <see cref="ParseEntries"/> atlar.
+    /// </summary>
     private static List<ApfsPartition>? ParseGpt(IBlockDevice device, byte[]? primary, int sector,
-        ref Exception? readError, out string problem)
+        ref Exception? readError, out string? problem)
     {
         long sectors = device.Length / sector;
-        problem = CoreText.T("Partition.GptHeaderInvalid");
-        if (primary is not null && TryReadTable(device, primary, sector, 1, ref readError, out var table, out problem))
-            return ParseEntries(primary, table, sector);
+        problem = null;
+        byte[] table;
+        if (primary is not null)
+        {
+            if (TryReadTable(device, primary, sector, 1, ref readError, out table, out string primaryProblem))
+                return ParseEntries(device, primary, table, sector);
+            problem = primaryProblem;
+        }
 
         ulong alt = primary is null ? 0 : Bin.U64(primary, 32);
         long backupLba = alt > 1 && alt < (ulong)sectors ? (long)alt : sectors - 1;
@@ -110,13 +133,18 @@ public static class PartitionLocator
         {
             if (lba <= 1) continue;
             var backup = new byte[sector];
-            if (TryRead(device, lba * sector, backup, ref readError) && HasGptSignature(backup)
-                && TryReadTable(device, backup, sector, lba, ref readError, out table, out _))
-                return ParseEntries(backup, table, sector);
+            if (!TryRead(device, lba * sector, backup, ref readError) || !HasGptSignature(backup)) continue;
+            if (TryReadTable(device, backup, sector, lba, ref readError, out table, out _))
+                return ParseEntries(device, backup, table, sector);
+            problem ??= CoreText.T("Partition.GptHeaderInvalid");
         }
         return null;
     }
 
+    /// <summary>
+    /// Başlığı doğrular ve girdi tablosunu okur; geçersizse <paramref name="problem"/> nedenin metnidir. Okuma hatası
+    /// <paramref name="readError"/>'a (ilki) yazılır; hiçbir yol açılmazsa <see cref="FindApfsPartitions"/> onu yeniden atar.
+    /// </summary>
     private static bool TryReadTable(IBlockDevice device, byte[] header, int sector, long expectedLba,
         ref Exception? readError, out byte[] table, out string problem)
     {
@@ -131,12 +159,13 @@ public static class PartitionLocator
         if (GptCrc32.Compute(copy) != headerCrc) return false;
         if (Bin.U64(header, 24) != (ulong)expectedLba) return false;
         ulong firstUsable = Bin.U64(header, 40), lastUsable = Bin.U64(header, 48);
-        if (firstUsable < 2 || firstUsable > lastUsable || lastUsable >= (ulong)sectors) return false;
+        if (firstUsable < 2 || firstUsable > lastUsable) return false;
 
         ulong entriesLba = Bin.U64(header, 72);
         uint count = Bin.U32(header, 80);
         uint entrySize = Bin.U32(header, 84);
-        if (entrySize < 128 || entrySize > 4096 || entrySize % 8 != 0 || count == 0 || count > MaxPartitionEntries) return false;
+        if (entrySize < 128 || entrySize > 4096 || entrySize % 8 != 0 || count == 0 || (long)count * entrySize > MaxTableBytes)
+            return false;
 
         long tableLength = (long)count * entrySize; // ≤ 4 MiB
         ulong tableSectors = (ulong)((tableLength + sector - 1) / sector);
@@ -156,25 +185,45 @@ public static class PartitionLocator
         return true;
     }
 
-    private static List<ApfsPartition> ParseEntries(byte[] header, byte[] table, int sector)
+    private static List<ApfsPartition> ParseEntries(IBlockDevice device, byte[] header, byte[] table, int sector)
     {
         uint count = Bin.U32(header, 80);
         uint entrySize = Bin.U32(header, 84);
         ulong firstUsable = Bin.U64(header, 40), lastUsable = Bin.U64(header, 48);
+        ulong sectors = (ulong)(device.Length / sector);
         var result = new List<ApfsPartition>();
+        var taken = new List<(ulong First, ulong Last)>();
+        // APFS dışı girdilerin aralıkları (boş tür ve ters aralık hariç; kullanılabilir alanın dışındakiler de: bozuk tablo)
+        var others = new List<(ulong First, ulong Last)>();
         for (int i = 0; i < count; i++)
+        {
+            var entry = table.AsSpan((int)(i * entrySize), (int)entrySize);
+            var type = new Guid(entry[..16]);
+            if (type == Guid.Empty || type == ApfsPartitionType) continue;
+            ulong f = Bin.U64(entry, 32), l = Bin.U64(entry, 40);
+            if (f <= l) others.Add((f, l));
+        }
+        // En çok 1024 APFS bölümü (önceki tablo sınırının izin verdiği kadar): çok girdili tablo örtüşme denetimini (n²)
+        // ve hizmetin bölüm başına işini büyütmesin; gerçek disklerde birkaç APFS bölümü olur
+        for (int i = 0; i < count && result.Count < MaxApfsPartitions; i++)
         {
             var entry = table.AsSpan((int)(i * entrySize), (int)entrySize);
             var type = new Guid(entry[..16]);
             if (type != ApfsPartitionType) continue;
             ulong first = Bin.U64(entry, 32);
             ulong last = Bin.U64(entry, 40);
-            // LBA'ları çarpmadan önce disk sınırları içindeki kullanılabilir aralıkla karşılaştır.
-            if (first < firstUsable || last < first || last > lastUsable) continue;
+            // Taşmasız: önce kullanılabilir aralık ve sektör sayısıyla karşılaştırılır, sonra çarpılır (aralık dışı, diskin
+            // dışına taşan ya da ters bölüm: atla; yazıcı GPT yapılarını ezemesin)
+            if (first < firstUsable || last < first || last > lastUsable || last >= sectors) continue;
+            // Önceki bir APFS girdisiyle örtüşen (kopya ya da kısmen üst üste) girdi atlanır, yalnız ilki alınır: aynı kapsayıcı iki
+            // bölüm olup iki ayrı yazma oturumuyla aynı alan yöneticisinden blok ayırmasın (1.8.1: sessiz veri kaybı)
+            if (taken.Exists(t => first <= t.Last && t.First <= last)) continue;
+            taken.Add((first, last));
             long offset = (long)first * sector;
             long length = (long)(last - first + 1) * sector;
             string name = System.Text.Encoding.Unicode.GetString(entry.Slice(56, 72)).TrimEnd('\0');
-            result.Add(new ApfsPartition(offset, length, i + 1, string.IsNullOrEmpty(name) ? CoreText.U("Partition.Numbered", i + 1) : name));
+            bool overlaps = others.Exists(o => first <= o.Last && o.First <= last);
+            result.Add(new ApfsPartition(offset, length, i + 1, string.IsNullOrEmpty(name) ? CoreText.U("Partition.Numbered", i + 1) : name, overlaps));
         }
         return result;
     }

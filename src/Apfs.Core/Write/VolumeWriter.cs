@@ -66,12 +66,13 @@ public sealed partial class VolumeWriter
     /// <summary>Şifreli birimde şifreleyici (fs ağacı düğümleri ve dosya verisi); şifresiz birimde null.</summary>
     internal Crypto.VolumeCrypto? Crypto { get; }
 
-    /// <summary>Oturum biterken anahtar kopyası sıfırlanır.</summary>
+    /// <summary>Oturum biterken anahtar kopyası sıfırlanır; oturumun görüntüsünün şifreleyicisi de atılır (1.9.1).</summary>
     internal void ReleaseKey()
     {
         _key?.Dispose();
         _key = null;
         Crypto?.Dispose();
+        _view?.Dispose();
     }
 
     public bool CaseInsensitive { get; }
@@ -174,6 +175,43 @@ public sealed partial class VolumeWriter
     private bool _dirtyEver;
     private void Touch() { _dirty = true; _dirtyEver = true; }
 
+    // ---- Değiştiren işlemler iki evrelidir (1.8.1) ----
+
+    private int _mutationDepth;
+
+    /// <summary>
+    /// Değiştiren işlemin İKİNCİ evresi. Değiştiren her genel işlem (<see cref="CreateFile"/>, <see cref="CreateDirectory"/>,
+    /// <see cref="Write"/>, <see cref="SetSize"/>, <see cref="Delete"/>, <see cref="Rename"/>, <see cref="SetTimes"/>,
+    /// <see cref="SetHidden"/>) önce yalnız OKUYAN denetimi yapar (ad, varlık, tür, salt okunur içerik, boş alan…): orada atılan
+    /// istisna hiçbir şeyi değiştirmemiştir, oturum sürer ("disk dolu", "ad var", "bulunamadı" sıradan hatadır). Değişikliği bunun
+    /// içinde yapar: burada atılan HER istisna bellekteki birimi yarım bırakmış olabilir (extent bağlandı ama akış bilgisi eski,
+    /// blok ayrıldı ama yazılamadı, silme yarıda) ve 5 sn'lik commit onu diske işlerdi → oturum arızalı olur
+    /// (<see cref="WriteSession.Fault"/>; var olan "kaydetmeden bırak" yolu, disk son commit'te kalır). Geri alma günlüğü bilerek
+    /// seçilmedi. İç içe çağrı (<see cref="Rename"/> içindeki <see cref="Delete"/>) dış evreye katılır: derinlik sayacı arızayı
+    /// yalnız en dıştaki evrenin, ilk istisnayla bildirmesini sağlar (iç işlemin denetiminde çıkan istisna da dıştakinin
+    /// değişikliğinden sonra geldiği için arızadır). Arızalı oturumda hiçbir değişiklik başlamaz.
+    /// </summary>
+    private T Mutate<T>(Func<T> change)
+    {
+        _s.ThrowIfFaulted();
+        bool outermost = _mutationDepth++ == 0;
+        try
+        {
+            return change();
+        }
+        catch (Exception e) when (outermost)
+        {
+            _s.Fault(e);
+            throw;
+        }
+        finally
+        {
+            _mutationDepth--;
+        }
+    }
+
+    private void Mutate(Action change) => Mutate(() => { change(); return 0; });
+
     // ---- Dosya sistemi ağacındaki her değişikliğin tek geçtiği yer: görüntünün önbelleği burada düşürülür ----
 
     private ApfsVolume? _view;
@@ -247,12 +285,19 @@ public sealed partial class VolumeWriter
 
     public static long NowNs() => (DateTime.UtcNow - DateTime.UnixEpoch).Ticks * 100;
 
-    /// <summary>APFS ad kuralları: boş değil, "." / ".." değil, "/" ve NUL içermez, UTF-8 en fazla 255 bayt.</summary>
+    /// <summary>
+    /// APFS ad kuralları: boş değil, "." / ".." değil, "/" ve NUL içermez, UTF-8 en fazla 255 bayt. Geçersiz UTF-8 baytlarının
+    /// kaçış aralığından (<see cref="Bin.NameEscapeFirst"/>) karakter de yazılmaz: okuyucu o aralığı geçersiz Mac adlarını göstermek
+    /// için kullanır; aynı karakteri yazmak ikisini karıştırırdı (1.9.1).
+    /// </summary>
     public static void ValidateName(string name)
     {
         if (name.Length == 0 || name is "." or "..") throw new ApfsException(ApfsErrorCode.InvalidArgument, CoreText.T("VolWriter.InvalidName"));
         if (name.Contains('/') || name.Contains('\0')) throw new ApfsException(ApfsErrorCode.InvalidArgument, CoreText.T("VolWriter.InvalidNameChar"));
-        if (Encoding.UTF8.GetByteCount(name) > 255) throw new ApfsException(ApfsErrorCode.InvalidArgument, CoreText.T("VolWriter.NameTooLong"));
+        if (Encoding.UTF8.GetByteCount(name) > 255) throw new ApfsException(ApfsErrorCode.NameTooLong, CoreText.T("VolWriter.NameTooLong"));
+        foreach (char c in name)
+            if (c is >= Bin.NameEscapeFirst and <= Bin.NameEscapeLast)
+                throw new ApfsException(ApfsErrorCode.InvalidName, CoreText.T("VolWriter.InvalidNameEscape"));
     }
 
     private InodeRecord RequireDirectory(ulong dirId)
@@ -262,18 +307,23 @@ public sealed partial class VolumeWriter
         return dir;
     }
 
-    /// <summary>Yeni klasör oluşturur; kimliğini döndürür.</summary>
-    public ulong CreateDirectory(ulong parentId, string name) => CreateNode(parentId, name, isDirectory: true);
+    /// <summary>Yeni klasör oluşturur; kimliğini döndürür. <paramref name="hidden"/>: UF_HIDDEN ile (tek işlemde).</summary>
+    public ulong CreateDirectory(ulong parentId, string name, bool hidden = false) => CreateNode(parentId, name, isDirectory: true, hidden);
 
-    /// <summary>Yeni boş dosya oluşturur; kimliğini döndürür.</summary>
-    public ulong CreateFile(ulong parentId, string name) => CreateNode(parentId, name, isDirectory: false);
+    /// <summary>Yeni boş dosya oluşturur; kimliğini döndürür. <paramref name="hidden"/>: UF_HIDDEN ile (tek işlemde).</summary>
+    public ulong CreateFile(ulong parentId, string name, bool hidden = false) => CreateNode(parentId, name, isDirectory: false, hidden);
 
-    private ulong CreateNode(ulong parentId, string name, bool isDirectory)
+    private ulong CreateNode(ulong parentId, string name, bool isDirectory, bool hidden)
     {
         ValidateName(name);
         var parent = RequireDirectory(parentId);
         if (FindCollision(parentId, name) is not null) throw new ApfsException(ApfsErrorCode.AlreadyExists, name);
+        EnsureSpace(Room.Metadata, CreateCost);
+        return Mutate(() => CreateNodeCore(parentId, parent, name, isDirectory, hidden));
+    }
 
+    private ulong CreateNodeCore(ulong parentId, InodeRecord parent, string name, bool isDirectory, bool hidden)
+    {
         long now = NowNs();
         ulong id = NextObjId();
         var ino = new InodeRecord
@@ -288,6 +338,7 @@ public sealed partial class VolumeWriter
             Mode = (ushort)(isDirectory ? ModeDir | 0x1ED : ModeFile | 0x1A4), // 0755 / 0644
             // Şifreli birimde dosyalar PROTECTION_CLASS_C (3), klasörler 0: macOS'un USBTEST'te yazdığı gibi (98/98 dosya, 18/18 klasör)
             DefaultProtectionClass = Crypto is not null && !isDirectory ? 3u : 0u,
+            BsdFlags = hidden ? UfHidden : 0,
         };
         ino.Set(Records.XtName, Records.XfDoNotCopy, Records.NameXField(name));
         PutInode(id, ino);

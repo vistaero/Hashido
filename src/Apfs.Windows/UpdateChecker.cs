@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Apfs.Windows.Localization;
 
 namespace Apfs.Windows;
 
@@ -34,17 +35,28 @@ public sealed class UpdateChecker : IDisposable
     /// <summary>Açık depo (1.3.0 ve öncesi eski adı APFS-For-Windows kullanır; GitHub yönlendirir).</summary>
     public const string DefaultApi = "https://api.github.com/repos/ErsinZorba/Hashido/releases/latest";
 
-    /// <summary>Adres; <c>APFS_UPDATE_URL</c> ortam değişkeni geliştirme ve testler için değiştirir.</summary>
-    public static Uri Api => new(Environment.GetEnvironmentVariable("APFS_UPDATE_URL") is { Length: > 0 } u ? u : DefaultApi);
+    /// <summary>Adres; <c>APFS_UPDATE_URL</c> ortam değişkeni yalnız geliştirme kanalında (<c>--pipe</c>) değiştirir (<see cref="ApiFor"/>).</summary>
+    public static Uri Api => ApiFor(Ipc.PipeProtocol.PipeName, Environment.GetEnvironmentVariable("APFS_UPDATE_URL"));
+
+    /// <summary>
+    /// Kurulu kanal adıyla çalışan (gerçek) tepside her zaman <see cref="DefaultApi"/>: ortam değişkeni yayın derlemesinde yok
+    /// sayılır (aynı kullanıcı haklarındaki bir program güncelleme kaynağını değiştiremesin). Geliştirme kanalında değişkendeki geçerli
+    /// mutlak adres.
+    /// </summary>
+    internal static Uri ApiFor(string pipeName, string? env) =>
+        pipeName != Ipc.PipeProtocol.DefaultPipeName && Uri.TryCreate(env, UriKind.Absolute, out var u) ? u : new Uri(DefaultApi);
 
     public static readonly TimeSpan CheckInterval = TimeSpan.FromDays(1);
 
     private readonly Uri _api;
     private readonly HttpClient _http;
+    private readonly Action<string> _log;
 
-    public UpdateChecker(Uri api, TimeSpan? timeout = null, HttpMessageHandler? handler = null)
+    /// <param name="log">Teknik günlük (vekil sunucu kimlik isterse nedeni yazılır); null = <see cref="ServiceLog.Write"/>.</param>
+    public UpdateChecker(Uri api, TimeSpan? timeout = null, HttpMessageHandler? handler = null, Action<string>? log = null)
     {
         _api = api;
+        _log = log ?? ServiceLog.Write;
         _http = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false }) { Timeout = timeout ?? TimeSpan.FromSeconds(10) };
         _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("apfs-update-check", "1"));
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
@@ -72,6 +84,7 @@ public sealed class UpdateChecker : IDisposable
         try
         {
             using var resp = await _http.GetAsync(_api, ct);
+            if (ProxyAuth.Required(resp)) _log(WinText.T("Update.ProxyAuth"));
             if (!resp.IsSuccessStatusCode) return null;
             await using var s = await resp.Content.ReadAsStreamAsync(ct);
             using var doc = await JsonDocument.ParseAsync(s, cancellationToken: ct);
@@ -87,9 +100,20 @@ public sealed class UpdateChecker : IDisposable
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException or JsonException or InvalidOperationException)
         {
+            if (ProxyAuth.Required(e)) _log(WinText.T("Update.ProxyAuth"));
             return null;
         }
     }
+
+    /// <summary>
+    /// Açık deponun Release sayfası mı (1.9.1): yalnız https, github.com ve <c>/ErsinZorba/Hashido/releases/</c> yolu. Kayıt
+    /// defterinden okunan bağlantı (HKCU <c>UpdateUrl</c>) yalnız böyleyse açılır; önceden github.com'daki herhangi bir adres (ya da
+    /// http) kabul ediliyordu.
+    /// </summary>
+    public static bool IsReleasePage(Uri u) =>
+        u.Scheme == Uri.UriSchemeHttps && u.Host == "github.com" && u.IsDefaultPort && u.AbsolutePath.StartsWith(ReleasesPath, StringComparison.Ordinal);
+
+    private const string ReleasesPath = "/ErsinZorba/Hashido/releases/";
 
     /// <summary>Açık deponun Release dosyalarının adres öneki (etiket ve dosya adı eklenir).</summary>
     public const string DownloadPrefix = "https://github.com/ErsinZorba/Hashido/releases/download/";
@@ -140,4 +164,20 @@ public sealed class UpdateChecker : IDisposable
         !Version.TryParse(notifiedVersion, out var n) || Normalize(info.Version) > Normalize(n);
 
     public void Dispose() => _http.Dispose();
+}
+
+/// <summary>
+/// Vekil sunucu kimlik istedi mi (HTTP 407; https'te tünel kurulurken istisna olarak gelir). Hashido vekil sunucuya kimlik bilgisi
+/// göndermez (kullanıcının parolası kullanılmaz); böyle ağda güncelleme ve raporlar çalışmaz, neden günlüğe yazılır.
+/// </summary>
+internal static class ProxyAuth
+{
+    public static bool Required(HttpResponseMessage response) => response.StatusCode == System.Net.HttpStatusCode.ProxyAuthenticationRequired;
+
+    public static bool Required(Exception e)
+    {
+        for (var x = e; x is not null; x = x.InnerException)
+            if (x is HttpRequestException { StatusCode: System.Net.HttpStatusCode.ProxyAuthenticationRequired }) return true;
+        return false;
+    }
 }

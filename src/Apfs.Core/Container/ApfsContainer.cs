@@ -32,7 +32,12 @@ public sealed class ApfsContainer : IDisposable
     /// <summary>Açılış sırasında karşılaşılan, açılmayı engellemeyen sorunlar (Türkçe).</summary>
     public IReadOnlyList<string> Warnings { get; }
 
-    public static ApfsContainer Open(IBlockDevice device, bool ownsDevice = false)
+    /// <summary>Kapsayıcının GPT bölümü APFS dışı bir bölümle örtüşüyor (<see cref="Partitions.ApfsPartition.OverlapsOther"/>):
+    /// tam denetim hata sayar, yazma kapısı reddeder.</summary>
+    public bool PartitionOverlapsOther { get; private init; }
+
+    /// <param name="partitionOverlapsOther">Bölümü açan (<c>SourceOpener</c>) bölüm tablosundan bildirir.</param>
+    public static ApfsContainer Open(IBlockDevice device, bool ownsDevice = false, bool partitionOverlapsOther = false)
     {
         if (device.Length < ApfsConstants.MinBlockSize)
             throw new ApfsException(ApfsErrorCode.NotApfs, CoreText.T("Container.DeviceTooSmall"));
@@ -55,19 +60,10 @@ public sealed class ApfsContainer : IDisposable
         if ((sb0.XpDescBlocks & ApfsConstants.XpDescBlocksNonContiguous) == 0)
         {
             ulong count = sb0.XpDescBlocks;
-            if (count > 0 && count <= 1_000_000 && sb0.XpDescBase < reader.BlockCount && sb0.XpDescBase + count <= reader.BlockCount)
+            if (count > 0 && count <= MaxDescRingBlocks && count * blockSize <= MaxCandidateScanBytes
+                && sb0.XpDescBase < reader.BlockCount && sb0.XpDescBase + count <= reader.BlockCount)
             {
-                for (ulong i = 0; i < count; i++)
-                {
-                    ulong paddr = sb0.XpDescBase + i;
-                    try
-                    {
-                        if (!reader.TryReadValidObject(paddr, ApfsConstants.TypeNxSuperblock, out var b)) continue;
-                        if (Bin.U32(b, 32) != ApfsConstants.NxMagic || Bin.U32(b, 36) != blockSize) continue;
-                        candidates.Add(NxSuperblock.Parse(b, paddr));
-                    }
-                    catch (ApfsException) { /* bu blok kullanılamaz; diğerlerine bak */ }
-                }
+                ScanCandidates(device, reader, sb0.XpDescBase, count, blockSize, candidates, warnings);
             }
             else
             {
@@ -79,6 +75,7 @@ public sealed class ApfsContainer : IDisposable
             warnings.Add(CoreText.T("Container.NonContiguousCheckpointArea"));
         }
         if (block0Valid) candidates.Add(sb0);
+        KeepOwnContainer(candidates, block0Valid ? sb0.Uuid : null, warnings);
 
         var ordered = candidates.OrderByDescending(c => c.Xid).ThenBy(c => c.Paddr == 0 ? 1 : 0).ToList();
         var errors = new List<string>();
@@ -90,7 +87,7 @@ public sealed class ApfsContainer : IDisposable
                 var omap = new ObjectMap(reader, sb.OmapOid);
                 if (sb != ordered[0])
                     warnings.Add(CoreText.T("Container.OlderCheckpointUsed", sb.Xid));
-                return new ApfsContainer(device, reader, sb, omap, ownsDevice, warnings);
+                return new ApfsContainer(device, reader, sb, omap, ownsDevice, warnings) { PartitionOverlapsOther = partitionOverlapsOther };
             }
             catch (ApfsException e) when (e.Code is not ApfsErrorCode.IoError and not ApfsErrorCode.AccessDenied)
             {
@@ -99,6 +96,93 @@ public sealed class ApfsContainer : IDisposable
         }
         throw new ApfsException(ApfsErrorCode.NoValidCheckpoint, errors.Count > 0 ? string.Join("; ", errors.Take(3)) : null);
     }
+
+    /// <summary>
+    /// Adaylardan yalnız bu kapsayıcınınkiler kalır (1.9.1): blok 0 geçerliyse onun <c>nx_uuid</c>'i, değilse en çok adayın
+    /// paylaştığı UUID (eşitlikte en yüksek xid'li). Halkada başka UUID'li süper blok kalabilir (yeniden biçimlendirilmiş disk, kopyalanmış
+    /// alan); xid'i daha yüksekse önceden seçilip başka bir kapsayıcının checkpoint'i açılıyordu. Bizimkinden yenisi atlandıysa uyarı
+    /// (kapı reddeder); eskileri sessizce (biçimlendirme artığı olağan).
+    /// </summary>
+    private static void KeepOwnContainer(List<NxSuperblock> candidates, Guid? block0Uuid, List<string> warnings)
+    {
+        if (candidates.Count == 0) return;
+        Guid own = block0Uuid ?? candidates.GroupBy(c => c.Uuid)
+            .OrderByDescending(g => g.Count()).ThenByDescending(g => g.Max(c => c.Xid)).First().Key;
+        var foreign = candidates.Where(c => c.Uuid != own).ToList();
+        if (foreign.Count == 0) return;
+        candidates.RemoveAll(c => c.Uuid != own);
+        ulong newestOwn = candidates.Count > 0 ? candidates.Max(c => c.Xid) : 0;
+        ulong newestForeign = foreign.Max(c => c.Xid);
+        if (newestForeign > newestOwn) warnings.Add(CoreText.T("Container.ForeignCheckpointSkipped", newestForeign, foreign[0].Uuid));
+    }
+
+    /// <summary>
+    /// Tanımlayıcı halkasındaki süper blok adayları. Halka büyük parçalarla ardışık okunur (parça başına bir G/Ç; eskiden blok
+    /// başına bir okuma); parça okunamazsa o parçanın blokları tek tek denenir. Tek tek okumada G/Ç hatası bir kez yeniden denenir;
+    /// yine okunamazsa blok atlanır ve UYARI eklenir (1.9.1: geçici bir USB hatası en yeni süper bloğu sessizce atlatıp diski
+    /// bayat checkpoint'le bağlıyordu; uyarı yazmaya açmayı reddettirir, hizmet günlüğe yazar). Bozuk/başka tür blok sessizce atlanır.
+    /// </summary>
+    private static void ScanCandidates(IBlockDevice device, ObjectReader reader, ulong start, ulong count, uint blockSize,
+        List<NxSuperblock> candidates, List<string> warnings)
+    {
+        int unreadable = 0;
+        ulong firstUnreadable = 0;
+        int chunkBlocks = (int)Math.Max(1, CandidateChunkBytes / blockSize);
+        var chunk = new byte[(long)Math.Min((ulong)chunkBlocks, count) * blockSize];
+        for (ulong first = 0; first < count; first += (ulong)chunkBlocks)
+        {
+            int n = (int)Math.Min((ulong)chunkBlocks, count - first);
+            var span = chunk.AsSpan(0, n * (int)blockSize);
+            bool whole;
+            try { device.Read((long)((start + first) * blockSize), span); whole = true; }
+            catch (ApfsException) { whole = false; }
+            for (int k = 0; k < n; k++)
+            {
+                ulong paddr = start + first + (ulong)k;
+                try
+                {
+                    byte[]? b;
+                    if (whole) b = span.Slice(k * (int)blockSize, (int)blockSize).ToArray();
+                    else if ((b = ReadWithRetry(reader, paddr)) is null)
+                    {
+                        if (unreadable++ == 0) firstUnreadable = paddr;
+                        continue;
+                    }
+                    if (!Fletcher64.Verify(b) || (Bin.U32(b, 24) & ApfsConstants.ObjectTypeMask) != ApfsConstants.TypeNxSuperblock) continue;
+                    if (Bin.U32(b, 32) != ApfsConstants.NxMagic || Bin.U32(b, 36) != blockSize) continue;
+                    candidates.Add(NxSuperblock.Parse(b, paddr));
+                }
+                catch (ApfsException) { /* bu blok kullanılamaz; diğerlerine bak */ }
+            }
+        }
+        if (unreadable > 0) warnings.Add(CoreText.T("Container.CandidateUnreadable", unreadable, firstUnreadable));
+    }
+
+    /// <summary>Bloğu okur; G/Ç hatasında bir kez daha dener, yine olmazsa null. Başka hatalar (sınır vb.) yukarı gider.</summary>
+    private static byte[]? ReadWithRetry(ObjectReader reader, ulong paddr)
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            try { return reader.ReadBlock(paddr); }
+            catch (ApfsException e) when (e.Code == ApfsErrorCode.IoError)
+            {
+                if (attempt == 1) return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Aday taramasının ve boş alan okumasının güvendiği en büyük tanımlayıcı halkası (blok). Gerçek halkalar küçük
+    /// (tamDuzeltmePlan P0 Mac ölçümü: 512 MB'ta 8, 64 GB–16 TB'ta 280–292 blok; gerçek Disk 3 C 280): ×28 pay. Aşılırsa açılış
+    /// yalnız blok 0'ı kullanır (uyarıyla), boş alan birim sayaçlarından. 1.8.1'e dek 1 000 000 (bozuk diskte çok uzun okuma).
+    /// </summary>
+    private const uint MaxDescRingBlocks = 8192;
+
+    /// <summary>Aday taramasının okuyabileceği en çok bayt (büyük blok boyutunda halka sınırı bundan da küçülür).</summary>
+    private const ulong MaxCandidateScanBytes = 64UL << 20;
+
+    /// <summary>Aday taramasında tek okumanın boyu.</summary>
+    private const uint CandidateChunkBytes = 1 << 20;
 
     private static void Validate(NxSuperblock sb, ObjectReader reader)
     {
@@ -119,12 +203,23 @@ public sealed class ApfsContainer : IDisposable
         IEnumerable<Crypto.VolumeKey>? keys = null)
     {
         var result = new List<VolumeOpenResult>();
+        var uuids = new Dictionary<Guid, ulong>();
         for (int i = 0; i < Superblock.FsOids.Count; i++)
         {
             ulong oid = Superblock.FsOids[i];
             try
             {
-                var key = keys is null ? null : keys.FirstOrDefault(k => k.VolumeUuid == VolumeUuid(oid));
+                // Birim UUID'si kapsayıcıda tek (1.9.1): anahtar ve parola UUID ile eşlenir; aynı UUID'li ikinci birim (başka
+                // oid) birincinin anahtarıyla açılmaya çalışılırdı. Aynı oid'in tekrarı ayrı konu (hizmet bir kez bağlar).
+                Guid? uuid = null;
+                try { uuid = VolumeUuid(oid); } catch (ApfsException e) when (e.Code is not ApfsErrorCode.IoError) { }
+                if (uuid is { } u)
+                {
+                    if (uuids.TryGetValue(u, out ulong first) && first != oid)
+                        throw ApfsException.Corrupt(CoreText.T("Container.VolumeUuidRepeated", u, first));
+                    uuids.TryAdd(u, oid);
+                }
+                var key = keys is null ? null : keys.FirstOrDefault(k => k.VolumeUuid == (uuid ?? VolumeUuid(oid)));
                 result.Add(new VolumeOpenResult(i, key is null ? ApfsVolume.Open(this, oid, passwordProvider) : ApfsVolume.Open(this, oid, key), null));
             }
             catch (ApfsException e) when (e.Code is not ApfsErrorCode.IoError)
@@ -181,12 +276,18 @@ public sealed class ApfsContainer : IDisposable
     /// <summary>
     /// Alan yöneticisi geçici (ephemeral) bir nesnedir; yeri seçilen checkpoint'in eşleme bloklarındadır
     /// (checkpoint_map_phys_t → cpm_oid == nx_spaceman_oid → cpm_paddr). sm_dev[SD_MAIN].sm_free_count = ofset 72.
+    /// Halkanın boyu ve uzunluğu diskten gelir: halka ≤ <see cref="MaxDescRingBlocks"/> blok ve kapsayıcının içinde, uzunluk ≤
+    /// <see cref="MaxDescLen"/> olmalı; değilse null (birim sayaçları). Yoksa blok 0'ı bozuk büyük bir disk bütün aygıtı 4 KiB'lık
+    /// okumalarla taratıyordu (1.8.1; gerçek Mac diski: 280 blok, uzunluk 2). Halka sınırı <see cref="Open"/>'ın aday taramasıyla
+    /// aynı (1.8.2'den beri 8192).
     /// </summary>
     private ulong? TryReadSpacemanFreeBlocks()
     {
         var sb = Superblock;
         uint ringSize = sb.XpDescBlocks & ~ApfsConstants.XpDescBlocksNonContiguous;
         if (sb.SpacemanOid == 0 || ringSize == 0 || (sb.XpDescBlocks & ApfsConstants.XpDescBlocksNonContiguous) != 0 || sb.XpDescLen > ringSize)
+            return null;
+        if (ringSize > MaxDescRingBlocks || sb.XpDescBase > sb.BlockCount || ringSize > sb.BlockCount - sb.XpDescBase || sb.XpDescLen > MaxDescLen)
             return null;
         try
         {
@@ -214,6 +315,9 @@ public sealed class ApfsContainer : IDisposable
         catch (ApfsException e) when (e.Code is not ApfsErrorCode.IoError) { }
         return null;
     }
+
+    /// <summary>Boş alan okumasının güvendiği en uzun checkpoint (tanımlayıcı blok sayısı; macOS'ta birkaç blok).</summary>
+    internal const uint MaxDescLen = 4096;
 
     public void Dispose()
     {

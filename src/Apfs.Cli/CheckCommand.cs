@@ -13,6 +13,9 @@ namespace Apfs.Cli;
 /// </summary>
 internal static class CheckCommand
 {
+    /// <summary>Klasör derinliği sınırı (`check` ve `ls -r`; yığın taşmasın).</summary>
+    public const int MaxDepth = 256;
+
     public static int Run(CliOptions o)
     {
         using var c = SourceOpener.OpenContainer(o.Require(0, WinText.T("Cli.ArgSource")), o.Partition);
@@ -22,6 +25,7 @@ internal static class CheckCommand
         int problems = 0;
         foreach (var r in c.OpenVolumes(passwords))
         {
+            using var opened = r.Volume; // denetimden sonra (ya da atlanınca) atılır
             if (o.Has("--volume-set") && r.Index != o.Volume) continue;
             if (r.Volume is not { } v)
             {
@@ -45,10 +49,14 @@ internal static class CheckCommand
             var asked = new Dictionary<Guid, string?>(); // istem parolayı birim başına bir kez sorsun
             string? Once(VolumeLockInfo i) => asked.TryGetValue(i.Uuid, out var p) ? p : asked[i.Uuid] = passwords(i);
             foreach (var r in c.OpenVolumes(Once))
+            {
+                using var opened = r.Volume;
                 if (r.Volume is { IsEncrypted: true } v && asked.GetValueOrDefault(v.Uuid) is { } pw)
                     keys.Add(Apfs.Crypto.VolumeKey.Unlock(c, v.Uuid, pw));
+            }
         }
         var g = Apfs.Write.WriteGate.Evaluate(c, keys);
+        foreach (var k in keys) k.Dispose();
         Console.WriteLine(g.Allowed ? WinText.T("Cli.GateOpen") : WinText.T("Cli.GateClosed"));
         foreach (var r in g.Reasons) Console.WriteLine(WinText.T("Cli.GateReason", r));
         foreach (var l in g.LockedVolumes) Console.WriteLine(WinText.T("Cli.GateLocked", l.Name));
@@ -61,6 +69,8 @@ internal static class CheckCommand
 
     private static int RunFull(Container.ApfsContainer c, Func<VolumeLockInfo, string?>? passwords, bool hide)
     {
+        var (needed, budget) = Apfs.Diagnostics.FullCheck.MemoryEstimate(c);
+        if (needed > budget) Console.WriteLine(WinText.T("Cli.Warning", CoreText.T("Check.MemoryBudget", needed >> 20, budget >> 20)));
         var sw = Stopwatch.StartNew();
         var report = Apfs.Diagnostics.FullCheck.Run(c, passwords);
         foreach (var l in report.Info) Console.WriteLine($"  {Hide(l, hide)}");
@@ -86,7 +96,7 @@ internal static class CheckCommand
 
         void Walk(Inode dir, string path, int depth)
         {
-            if (depth > 256) { errors.Add(WinText.T("Cli.DepthExceeded", path)); return; }
+            if (depth > MaxDepth) { errors.Add(WinText.T("Cli.DepthExceeded", path)); return; }
             IReadOnlyList<DirEntry> entries;
             try
             {
@@ -105,7 +115,15 @@ internal static class CheckCommand
                 try
                 {
                     var ino = v.GetInode(e.FileId);
-                    if (ino.IsDirectory) { dirs++; Walk(ino, p, depth + 1); continue; }
+                    if (ino.IsDirectory)
+                    {
+                        // ikinci kez görülen klasör (APFS'te klasörün sert bağı yok) bozuk veridir, içine inilmez (kendine
+                        // işaret eden iki girdi 2^256 yol yürütüyordu)
+                        if (!seen.Add(ino.Id)) { errors.Add(WinText.T("Cli.DirectoryLoop", p)); continue; }
+                        dirs++;
+                        Walk(ino, p, depth + 1);
+                        continue;
+                    }
                     if (!seen.Add(ino.Id)) continue; // sert bağ: bir kez say
                     if (ino.IsSymlink) { symlinks++; v.ReadSymlinkTarget(ino.Id); continue; }
                     if (!ino.IsRegularFile) { others++; continue; }
@@ -127,6 +145,7 @@ internal static class CheckCommand
                 }
             }
         }
+        seen.Add(Inode.RootDirId);
         Walk(v.Root, "", 0);
 
         Console.WriteLine(WinText.T("Cli.CheckRead", files, dirs, symlinks, others, bytes / 1048576.0, sw.Elapsed.TotalSeconds));

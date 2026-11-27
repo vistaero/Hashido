@@ -66,11 +66,17 @@
   <data name="Cli.DepthExceeded" xml:space="preserve">
     <value>{0}: folder depth exceeded 256 (possible loop)</value>
   </data>
+  <data name="Cli.DirectoryLoop" xml:space="preserve">
+    <value>{0}: folder already visited (folder loop); not descended</value>
+  </data>
   <data name="Cli.EncryptedUnlocked" xml:space="preserve">
     <value> (encrypted, unlocked)</value>
   </data>
   <data name="Cli.Error" xml:space="preserve">
     <value>Error: {0}</value>
+  </data>
+  <data name="Cli.ExtractNotFile" xml:space="preserve">
+    <value>{0} is not a regular file ({1}); nothing was extracted</value>
   </data>
   <data name="Cli.FullClean" xml:space="preserve">
     <value>Result: structure fully consistent ({0:N1} s).</value>
@@ -146,6 +152,15 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   </data>
   <data name="Cli.InfoVolumeFailed" xml:space="preserve">
     <value>Volume {0}: could not be opened: {1}</value>
+  </data>
+  <data name="Cli.KindDirectory" xml:space="preserve">
+    <value>folder</value>
+  </data>
+  <data name="Cli.KindSpecial" xml:space="preserve">
+    <value>special file</value>
+  </data>
+  <data name="Cli.KindSymlink" xml:space="preserve">
+    <value>symbolic link</value>
   </data>
   <data name="Cli.InstallDirInUse" xml:space="preserve">
     <value>A program is already installed in {0} (no "apfs register" copy marker); it was not overwritten. Run "apfs register" from that folder instead.</value>
@@ -270,14 +285,35 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   <data name="Ejector.Refused" xml:space="preserve">
     <value>Windows could not eject the disk right now (code {0:X}/{1}{2}). Try again in a moment.</value>
   </data>
+  <data name="Ipc.MalformedResponse" xml:space="preserve">
+    <value>malformed service response (no disk list)</value>
+  </data>
   <data name="Ipc.MessageTooLong" xml:space="preserve">
     <value>message too long</value>
   </data>
+  <data name="DataDir.DepthLimit" xml:space="preserve">
+    <value>{0}: depth limit reached</value>
+  </data>
+  <data name="DataDir.ItemLimit" xml:space="preserve">
+    <value>{0}: item limit reached</value>
+  </data>
+  <data name="DataDir.StillLink" xml:space="preserve">
+    <value>{0}: still a link after removing it (3 attempts)</value>
+  </data>
+  <data name="Ipc.UntrustedServer" xml:space="preserve">
+    <value>the server of pipe {0} is not the installed service (it is not running in the services session); nothing was sent</value>
+  </data>
+  <data name="Language.SaveFailed" xml:space="preserve">
+    <value>The language choice could not be saved ({0}).</value>
+  </data>
+  <data name="Password.SavedRefused" xml:space="preserve">
+    <value>{0}: the saved password did not work; the record is kept and the password is asked for.</value>
+  </data>
+  <data name="Password.ReadFailed" xml:space="preserve">
+    <value>could not read the remembered password of {0} (Windows error {1}); the password window opens with the box checked</value>
+  </data>
   <data name="Password.SaveFailed" xml:space="preserve">
     <value>{0}: the password could not be saved ({1}).</value>
-  </data>
-  <data name="Password.SavedRemoved" xml:space="preserve">
-    <value>{0}: the saved password no longer works; it was deleted.</value>
   </data>
   <data name="Password.SavedUnlocked" xml:space="preserve">
     <value>{0}: unlocked with the saved password.</value>
@@ -300,6 +336,9 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   <data name="Raw.ShortRead" xml:space="preserve">
     <value>less data than expected was read from the disk</value>
   </data>
+  <data name="Raw.ShortWrite" xml:space="preserve">
+    <value>the disk wrote less than requested</value>
+  </data>
   <data name="Raw.Unaligned" xml:space="preserve">
     <value>raw disk I/O not aligned to sectors: {0}+{1}</value>
   </data>
@@ -312,6 +351,9 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   <data name="Raw.WriteOutOfRange" xml:space="preserve">
     <value>write outside the disk bounds: {0}+{1}</value>
   </data>
+  <data name="Reports.ProxyAuth" xml:space="preserve">
+    <value>Reports could not be sent: the proxy server requires sign-in (HTTP 407). Hashido does not send credentials to a proxy.</value>
+  </data>
   <data name="Service.LanguageSet" xml:space="preserve">
     <value>Language: {0}</value>
   </data>
@@ -323,6 +365,15 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   </data>
   <data name="Svc.DiskCheckFailed" xml:space="preserve">
     <value>{0}: could not check the disk: {1}</value>
+  </data>
+  <data name="Svc.ContainerWarning" xml:space="preserve">
+    <value>{0}: APFS partition {1}: {2}</value>
+  </data>
+  <data name="Svc.DuplicateVolumeOid" xml:space="preserve">
+    <value>{0}: APFS partition {1} lists the same volume {2} more time(s); it was mounted once.</value>
+  </data>
+  <data name="Svc.AttachStopped" xml:space="preserve">
+    <value>{0}: the service is stopping; the volumes mounted during the scan were unmounted.</value>
   </data>
   <data name="Svc.DiskNotReady" xml:space="preserve">
     <value>{0} is not ready yet; retrying without a warning for up to {1} seconds: {2}</value>
@@ -351,6 +402,21 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   <data name="Svc.PipeError" xml:space="preserve">
     <value>pipe error: {0}</value>
   </data>
+  <data name="Svc.DataDirLinksRemoved" xml:space="preserve">
+    <value>data folder: {0} link(s) or hard-linked file(s) that did not belong there were removed (the folder is secured at every start).</value>
+  </data>
+  <data name="Svc.DataDirSecureFailed" xml:space="preserve">
+    <value>data folder could not be fully secured: {0}</value>
+  </data>
+  <data name="Svc.DataDirMovedAside" xml:space="preserve">
+    <value>data folder: a folder whose permissions let other accounts change it was moved aside to {0} and replaced by a new one (its reports were not kept).</value>
+  </data>
+  <data name="Svc.DataDirUntrusted" xml:space="preserve">
+    <value>data folder: {0} could not be secured; until the next start the service writes there nothing and uses {1} instead.</value>
+  </data>
+  <data name="Svc.PipeNameTaken" xml:space="preserve">
+    <value>pipe name {0} is held by another process; the tray cannot connect until it is released. Retrying every 5 seconds.</value>
+  </data>
   <data name="Svc.ReportDropped" xml:space="preserve">
     <value>Report event "{0}" was not queued (does not match the schema: {1}).</value>
   </data>
@@ -369,6 +435,9 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   <data name="Svc.ScanError" xml:space="preserve">
     <value>scan error: {0}</value>
   </data>
+  <data name="Svc.StatusTrimmed" xml:space="preserve">
+    <value>{0} volume(s) were left out of the status reply (size limit; logged once).</value>
+  </data>
   <data name="Svc.Started" xml:space="preserve">
     <value>Service started.</value>
   </data>
@@ -378,14 +447,65 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   <data name="Svc.Stopped" xml:space="preserve">
     <value>Service stopped.</value>
   </data>
+  <data name="Svc.TrayRestartFailed" xml:space="preserve">
+    <value>The tray app closed by setup could not be opened again in Windows session {0} (error {1}).</value>
+  </data>
+  <data name="Svc.TrayRestartSkipped" xml:space="preserve">
+    <value>Setup's list of tray apps to reopen was not used ("{0}", written {1} UTC): it is too old, unreadable or the tray app is missing.</value>
+  </data>
+  <data name="Svc.TrayRestarted" xml:space="preserve">
+    <value>Setup had closed the tray app in Windows session {0}; it was opened again.</value>
+  </data>
   <data name="Svc.UnknownRequest" xml:space="preserve">
     <value>unknown request</value>
   </data>
   <data name="Svc.UnlockFailed" xml:space="preserve">
     <value>{0}: "{1}" unlock failed: {2}</value>
   </data>
+  <data name="Svc.UnlockDiskGone" xml:space="preserve">
+    <value>{0}: the disk was released while "{1}" was being unlocked; the key was erased and the volume was not mounted.</value>
+  </data>
+  <data name="Svc.UnlockDelayed" xml:space="preserve">
+    <value>{0}: too many wrong passwords; this attempt waited {1} ms.</value>
+  </data>
+  <data name="Raw.OpenTimedOut" xml:space="preserve">
+    <value>{0}: the disk did not answer within {1} s while being opened; it is treated as unreadable.</value>
+  </data>
+  <data name="Raw.ReadTimedOut" xml:space="preserve">
+    <value>{0}: the disk did not answer a read within {1} s; it is treated as unreadable.</value>
+  </data>
+  <data name="Raw.WriteTimedOut" xml:space="preserve">
+    <value>{0}: the disk did not complete a write within {1} s; treated as unwritable.</value>
+  </data>
   <data name="Svc.UnmountError" xml:space="preserve">
     <value>{0}: unmount error: {1}</value>
+  </data>
+  <data name="Svc.PowerEventFailed" xml:space="preserve">
+    <value>sleep/wake handling error: {0}</value>
+  </data>
+  <data name="Svc.PowerRegisterFailed" xml:space="preserve">
+    <value>Sleep notifications could not be registered (error {0}); writable drives are not protected during sleep.</value>
+  </data>
+  <data name="Svc.PowerResume" xml:space="preserve">
+    <value>Wake: {0} write session(s) released without writing; mounted read-only.</value>
+  </data>
+  <data name="Svc.PowerSuspend" xml:space="preserve">
+    <value>Sleep: {0} write session(s) put on hold, {1} saved ({2} ms); {3} gate(s) frozen, {4} with a write still running.</value>
+  </data>
+  <data name="Svc.WritesResumedVerified" xml:space="preserve">
+    <value>{0}: the disk identity was verified; writing continues.</value>
+  </data>
+  <data name="Svc.WritesHeldUnreadable" xml:space="preserve">
+    <value>{0}: the disk identity could not be read once; writing is on hold until the next check.</value>
+  </data>
+  <data name="Svc.SleepNotSaved" xml:space="preserve">
+    <value>could not be saved before sleep</value>
+  </data>
+  <data name="Svc.SleptDuringEnable" xml:space="preserve">
+    <value>the computer went to sleep meanwhile</value>
+  </data>
+  <data name="Svc.WritesFrozenForSleep" xml:space="preserve">
+    <value>writes are stopped for sleep</value>
   </data>
   <data name="Svc.WaitingForPassword" xml:space="preserve">
     <value>{0}: "{1}" is waiting for a password.</value>
@@ -408,6 +528,9 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   <data name="Svc.WriteSessionClosed" xml:space="preserve">
     <value>{0}: partition {1} write session closed (last commit xid {2}).</value>
   </data>
+  <data name="Tray.StartFailed" xml:space="preserve">
+    <value>{0} could not be started ({1}).</value>
+  </data>
   <data name="Update.BadHash" xml:space="preserve">
     <value>Update rejected: the SHA-256 checksum does not match the release.</value>
   </data>
@@ -417,11 +540,17 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   <data name="Update.BadVersion" xml:space="preserve">
     <value>Update rejected: the file's version is {0}, expected {1}.</value>
   </data>
+  <data name="Update.CleanUpFailed" xml:space="preserve">
+    <value>could not clean up the updates folder: {0}: {1}</value>
+  </data>
   <data name="Update.Declined" xml:space="preserve">
     <value>Update {0}: setup ended with code {1}; it is not offered automatically for 24 hours.</value>
   </data>
   <data name="Update.DownloadFailed" xml:space="preserve">
     <value>Update download failed: {0}</value>
+  </data>
+  <data name="Update.Held" xml:space="preserve">
+    <value>Update {0} could not be verified; it is not downloaded automatically again for 24 hours.</value>
   </data>
   <data name="Update.HttpStatus" xml:space="preserve">
     <value>Update download failed: the server answered {0}.</value>
@@ -431,6 +560,9 @@ Encrypted volumes: --password-prompt (asks for the password) or --password-stdin
   </data>
   <data name="Update.NotApplied" xml:space="preserve">
     <value>Update {0} was not applied (installed version {1}); it is not offered automatically for 24 hours.</value>
+  </data>
+  <data name="Update.ProxyAuth" xml:space="preserve">
+    <value>Update could not reach GitHub: the proxy server requires sign-in (HTTP 407). Hashido does not send credentials to a proxy.</value>
   </data>
   <data name="Update.Stalled" xml:space="preserve">
     <value>Update download stopped: no progress for {0} s.</value>

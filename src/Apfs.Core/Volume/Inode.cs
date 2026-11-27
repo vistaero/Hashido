@@ -63,7 +63,7 @@ public sealed class Inode
                 switch (type)
                 {
                     case InodeXField.Name:
-                        name = Bin.Utf8Z(data);
+                        name = Bin.Utf8NameZ(data);
                         break;
                     case InodeXField.Dstream when data.Length >= 16:
                         size = Bin.U64(data, 0);
@@ -96,9 +96,11 @@ public sealed class Inode
         };
     }
 
-    /// <summary>APFS zaman damgası (1970'ten beri nanosaniye, UTC) → DateTime.</summary>
-    public static DateTime ToDateTime(long ns) =>
-        ns <= 0 ? DateTime.UnixEpoch : DateTime.UnixEpoch.AddTicks(Math.Min(ns / 100, DateTime.MaxValue.Ticks - DateTime.UnixEpoch.Ticks));
+    /// <summary>
+    /// APFS zaman damgası (1970'ten beri İŞARETLİ nanosaniye, UTC; 1677-09-21 … 2262-04-11) → DateTime. 1970 öncesi negatiftir
+    /// (önceden 1970 dönüyordu). Bütün değerler DateTime aralığındadır.
+    /// </summary>
+    public static DateTime ToDateTime(long ns) => DateTime.UnixEpoch.AddTicks(ns / 100);
 }
 
 /// <summary>Bir klasördeki girdi (j_drec).</summary>

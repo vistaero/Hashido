@@ -56,17 +56,49 @@ public static class Decmpfs
             ?? throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.NoCompressionInfo"));
         var h = ParseHeader(attr);
         if (!IsSupported(h.Type)) throw Unsupported(h.Type);
-        if (IsInline(h.Type))
-        {
-            if (h.UncompressedSize > MaxInlineSize)
-                throw new ApfsException(ApfsErrorCode.Unsupported, CoreText.T("Decmpfs.InlineTooLarge", h.UncompressedSize));
-            var data = new byte[h.UncompressedSize];
-            DecodeChunk(h.Type, attr.AsSpan(HeaderSize), data);
-            return new MemoryDataReader(data);
-        }
+        // Tek boy kaynağı: görünen boy (GetFileSize) inode'dakini alır; okuyucu başlıktakiyle çalışır. İkisi ayrıysa kopya sessizce
+        // kısa ya da sıfırla uzun kalırdı → çelişki bozukluktur.
+        if (inode.HasUncompressedSize && inode.UncompressedSize != h.UncompressedSize)
+            throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.SizeMismatch", inode.UncompressedSize, h.UncompressedSize));
+        if (IsInline(h.Type)) return new MemoryDataReader(DecodeInline(h, attr));
         var fork = volume.OpenXattrStream(inode.Id, ResourceForkName)
             ?? throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.ResourceForkMissing"));
         return new ResourceForkReader(h, fork);
+    }
+
+    /// <summary>
+    /// Öznitelik içi veriyi açar. Başlıktaki boy ayırmadan ÖNCE veriyle sınanır: verinin açılabileceği en çok bayttan büyükse
+    /// bozuktur (birkaç yüz baytlık öznitelik 64 MiB ayırtmasın).
+    /// </summary>
+    internal static byte[] DecodeInline(Header h, ReadOnlySpan<byte> attr)
+    {
+        var src = attr[HeaderSize..];
+        if (h.UncompressedSize > InlineCapacity(h.Type, src, h.UncompressedSize))
+            throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.InlineSizeExceedsData", h.UncompressedSize, src.Length));
+        if (h.UncompressedSize > MaxInlineSize)
+            throw new ApfsException(ApfsErrorCode.Unsupported, CoreText.T("Decmpfs.InlineTooLarge", h.UncompressedSize));
+        var data = new byte[h.UncompressedSize];
+        DecodeChunk(h.Type, src, data);
+        return data;
+    }
+
+    /// <summary>
+    /// <paramref name="src"/>'nin <see cref="DecodeChunk"/> ile açılabileceği en çok bayt (yalnız üst sınır; gerçek çözme yine
+    /// tam boyu ister). Sıkıştırılmamış işaretli veri kendi boyu; deflate en çok 1032:1 (2 bitte 258 bayt); LZVN en çok 271 bayt / 2
+    /// baytlık işlem; LZFSE bloklarının başlıkları açılmış boylarını söyler (toplamları, çözmeden).
+    /// </summary>
+    internal static ulong InlineCapacity(uint type, ReadOnlySpan<byte> src, ulong size)
+    {
+        ulong n = (ulong)src.Length;
+        if (n == 0) return 0;
+        return type switch
+        {
+            1 or 9 => n,
+            3 => (src[0] & 0x0F) == 0x0F ? n - 1 : n * 1032,
+            7 => src[0] == 0x06 ? n - 1 : n * 136,
+            11 => n - 1 == size && src[0] != (byte)'b' ? n - 1 : Lzfse.DeclaredSize(src),
+            _ => 0,
+        };
     }
 
     /// <summary>
@@ -160,42 +192,47 @@ public static class Decmpfs
         private readonly IDataReader _fork;
         private readonly (long Offset, int Size)[] _blocks;
         private readonly LruCache<int, byte[]> _cache = new(8);
+        private readonly ulong _available;
 
         public ResourceForkReader(Header h, IDataReader fork)
         {
             _type = h.Type;
             _fork = fork;
             Length = h.UncompressedSize;
-            long numBlocks = (long)((h.UncompressedSize + BlockSize - 1) / BlockSize);
+            // Yukarı yuvarlama taşmasız (boy + 65535, 2^64 − 65535 üstünde sarıp blok sayısını 0 yapıyordu)
+            ulong numBlocks = h.UncompressedSize / BlockSize + (h.UncompressedSize % BlockSize == 0 ? 0UL : 1UL);
             if (numBlocks > 1 << 26) throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.InvalidFileSize"));
-            _blocks = h.Type == 4 ? ReadZlibTable(fork, (int)numBlocks) : ReadOffsetTable(fork, (int)numBlocks);
+            // Çatalın gerçekten ayrılmış kısmı: tablo ve bloklar onun içinde olmalı (diskteki boy yüzünden büyük ayırma yok)
+            ulong available = fork is FileDataReader f ? Math.Min(fork.Length, f.CoveredLength) : fork.Length;
+            _available = available;
+            _blocks = h.Type == 4 ? ReadZlibTable(fork, (int)numBlocks, available) : ReadOffsetTable(fork, (int)numBlocks, available);
         }
 
         public ulong Length { get; }
 
         /// <summary>zlib kaynak çatalı: klasik kaynak çatalı başlığı (big-endian), 0x100'de blok tablosu.</summary>
-        private static (long, int)[] ReadZlibTable(IDataReader fork, int numBlocks)
+        private static (long, int)[] ReadZlibTable(IDataReader fork, int numBlocks, ulong available)
         {
-            var head = ReadFork(fork, 0, 0x108);
+            var head = ReadFork(fork, 0, 0x108, available);
             uint dataOffset = BinaryPrimitives.ReadUInt32BigEndian(head);
             if (dataOffset != 0x100) throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Zlib.InvalidForkHeader"));
             uint count = BinaryPrimitives.ReadUInt32LittleEndian(head.AsSpan(0x104));
             if (count != numBlocks) throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Zlib.BlockCountMismatch"));
-            var table = ReadFork(fork, 0x108, checked(numBlocks * 8));
+            var table = ReadFork(fork, 0x108, checked(numBlocks * 8), available);
             var result = new (long, int)[numBlocks];
             for (int i = 0; i < numBlocks; i++)
             {
                 uint off = BinaryPrimitives.ReadUInt32LittleEndian(table.AsSpan(i * 8));
                 uint size = BinaryPrimitives.ReadUInt32LittleEndian(table.AsSpan(i * 8 + 4));
-                result[i] = Validate(fork, 0x104L + off, size);
+                result[i] = Validate(available, 0x104L + off, size);
             }
             return result;
         }
 
         /// <summary>LZVN/LZFSE/kopya kaynak çatalı: (blok sayısı + 1) adet u32 ofset, son ofset çatalın sonu.</summary>
-        private static (long, int)[] ReadOffsetTable(IDataReader fork, int numBlocks)
+        private static (long, int)[] ReadOffsetTable(IDataReader fork, int numBlocks, ulong available)
         {
-            var table = ReadFork(fork, 0, checked((numBlocks + 1) * 4));
+            var table = ReadFork(fork, 0, checked((numBlocks + 1) * 4), available);
             var result = new (long, int)[numBlocks];
             uint prev = BinaryPrimitives.ReadUInt32LittleEndian(table);
             if (prev != (uint)(numBlocks + 1) * 4) throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.InvalidBlockTable"));
@@ -203,23 +240,23 @@ public static class Decmpfs
             {
                 uint next = BinaryPrimitives.ReadUInt32LittleEndian(table.AsSpan((i + 1) * 4));
                 if (next < prev) throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.BlockTableUnordered"));
-                result[i] = Validate(fork, prev, next - prev);
+                result[i] = Validate(available, prev, next - prev);
                 prev = next;
             }
             return result;
         }
 
-        private static (long, int) Validate(IDataReader fork, long offset, uint size)
+        private static (long, int) Validate(ulong available, long offset, uint size)
         {
-            if (size == 0 || size > BlockSize * 2 || offset < 0 || (ulong)offset + size > fork.Length)
+            if (size == 0 || size > BlockSize * 2 || offset < 0 || (ulong)offset + size > available)
                 throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.BlockOutsideFork"));
             return (offset, (int)size);
         }
 
-        private static byte[] ReadFork(IDataReader fork, long offset, int length)
+        private static byte[] ReadFork(IDataReader fork, long offset, int length, ulong available)
         {
-            // Bozuk bir tablo boyutu yüzünden büyük bellek ayrılmasın (64 MiB ≈ 16 milyon blok ≈ 1 TB'lık dosya)
-            if (length < 0 || length > 64 * 1024 * 1024 || (ulong)offset + (ulong)length > fork.Length)
+            // Bozuk bir tablo boyutu yüzünden büyük bellek ayrılmasın (64 MiB ≈ 16 milyon blok ≈ 1 TB'lık dosya; ve çatalın ayrılan kısmı)
+            if (length < 0 || length > 64 * 1024 * 1024 || (ulong)offset + (ulong)length > available)
                 throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.ForkShort"));
             var buf = new byte[length];
             if (fork.Read((ulong)offset, buf) != length) throw new ApfsException(ApfsErrorCode.Corrupt, CoreText.T("Decmpfs.ForkUnreadable"));
@@ -231,7 +268,7 @@ public static class Decmpfs
             var (off, size) = _blocks[i];
             int outLen = (int)Math.Min(BlockSize, Length - (ulong)i * BlockSize);
             var output = new byte[outLen];
-            DecodeChunk(_type, ReadFork(_fork, off, size), output);
+            DecodeChunk(_type, ReadFork(_fork, off, size, _available), output);
             return output;
         });
 

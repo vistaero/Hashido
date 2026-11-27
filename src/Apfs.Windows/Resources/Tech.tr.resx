@@ -66,11 +66,17 @@
   <data name="Cli.DepthExceeded" xml:space="preserve">
     <value>{0}: klasör derinliği 256'yı aştı (döngü olabilir)</value>
   </data>
+  <data name="Cli.DirectoryLoop" xml:space="preserve">
+    <value>{0}: klasör zaten görüldü (klasör döngüsü); içine inilmedi</value>
+  </data>
   <data name="Cli.EncryptedUnlocked" xml:space="preserve">
     <value> (şifreli, kilidi açıldı)</value>
   </data>
   <data name="Cli.Error" xml:space="preserve">
     <value>Hata: {0}</value>
+  </data>
+  <data name="Cli.ExtractNotFile" xml:space="preserve">
+    <value>{0} sıradan bir dosya değil ({1}); hiçbir şey çıkarılmadı</value>
   </data>
   <data name="Cli.FullClean" xml:space="preserve">
     <value>Sonuç: yapısal tutarlılık tam ({0:N1} sn).</value>
@@ -146,6 +152,15 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   </data>
   <data name="Cli.InfoVolumeFailed" xml:space="preserve">
     <value>Birim {0}: açılamadı: {1}</value>
+  </data>
+  <data name="Cli.KindDirectory" xml:space="preserve">
+    <value>klasör</value>
+  </data>
+  <data name="Cli.KindSpecial" xml:space="preserve">
+    <value>özel dosya</value>
+  </data>
+  <data name="Cli.KindSymlink" xml:space="preserve">
+    <value>sembolik bağ</value>
   </data>
   <data name="Cli.InstallDirInUse" xml:space="preserve">
     <value>{0} klasöründe kurulu bir program var ("apfs register" kopyası işareti yok); üzerine yazılmadı. "apfs register"ı o klasördeki apfs.exe ile çalıştırın.</value>
@@ -270,14 +285,35 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   <data name="Ejector.Refused" xml:space="preserve">
     <value>Windows diski şu anda çıkaramadı (kod {0:X}/{1}{2}). Biraz sonra tekrar deneyin.</value>
   </data>
+  <data name="Ipc.MalformedResponse" xml:space="preserve">
+    <value>hizmetin yanıtı biçimsiz (disk listesi yok)</value>
+  </data>
   <data name="Ipc.MessageTooLong" xml:space="preserve">
     <value>ileti çok uzun</value>
   </data>
+  <data name="DataDir.DepthLimit" xml:space="preserve">
+    <value>{0}: derinlik sınırı</value>
+  </data>
+  <data name="DataDir.ItemLimit" xml:space="preserve">
+    <value>{0}: öğe sınırı</value>
+  </data>
+  <data name="DataDir.StillLink" xml:space="preserve">
+    <value>{0}: bağ silindikten sonra yine bağ (3 deneme)</value>
+  </data>
+  <data name="Ipc.UntrustedServer" xml:space="preserve">
+    <value>{0} kanalının sunucusu kurulu hizmet değil (hizmetlerin oturumunda çalışmıyor); hiçbir şey gönderilmedi</value>
+  </data>
+  <data name="Language.SaveFailed" xml:space="preserve">
+    <value>Dil seçimi kaydedilemedi ({0}).</value>
+  </data>
+  <data name="Password.SavedRefused" xml:space="preserve">
+    <value>{0}: kayıtlı parola tutmadı; kayıt korunuyor, parola soruluyor.</value>
+  </data>
+  <data name="Password.ReadFailed" xml:space="preserve">
+    <value>{0} biriminin hatırlanan parolası okunamadı (Windows hatası {1}); parola penceresi kutu işaretli açılır</value>
+  </data>
   <data name="Password.SaveFailed" xml:space="preserve">
     <value>{0}: parola kaydedilemedi ({1}).</value>
-  </data>
-  <data name="Password.SavedRemoved" xml:space="preserve">
-    <value>{0}: kayıtlı parola artık geçerli değil; silindi.</value>
   </data>
   <data name="Password.SavedUnlocked" xml:space="preserve">
     <value>{0}: kayıtlı parolayla açıldı.</value>
@@ -300,6 +336,9 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   <data name="Raw.ShortRead" xml:space="preserve">
     <value>diskten beklenenden az veri okundu</value>
   </data>
+  <data name="Raw.ShortWrite" xml:space="preserve">
+    <value>disk istenenden az yazdı</value>
+  </data>
   <data name="Raw.Unaligned" xml:space="preserve">
     <value>sektör hizasız ham disk G/Ç'si: {0}+{1}</value>
   </data>
@@ -312,6 +351,9 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   <data name="Raw.WriteOutOfRange" xml:space="preserve">
     <value>disk sınırı dışında yazma: {0}+{1}</value>
   </data>
+  <data name="Reports.ProxyAuth" xml:space="preserve">
+    <value>Raporlar gönderilemedi: vekil sunucu kimlik istiyor (HTTP 407). Hashido vekil sunucuya kimlik bilgisi göndermez.</value>
+  </data>
   <data name="Service.LanguageSet" xml:space="preserve">
     <value>Dil: {0}</value>
   </data>
@@ -323,6 +365,15 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   </data>
   <data name="Svc.DiskCheckFailed" xml:space="preserve">
     <value>{0}: disk denetlenemedi: {1}</value>
+  </data>
+  <data name="Svc.ContainerWarning" xml:space="preserve">
+    <value>{0}: {1}. APFS bölümü: {2}</value>
+  </data>
+  <data name="Svc.DuplicateVolumeOid" xml:space="preserve">
+    <value>{0}: {1}. APFS bölümü aynı birimi {2} kez daha listeliyor; birim bir kez bağlandı.</value>
+  </data>
+  <data name="Svc.AttachStopped" xml:space="preserve">
+    <value>{0}: hizmet durduruluyor; taramada bağlanan birimler ayrıldı.</value>
   </data>
   <data name="Svc.DiskNotReady" xml:space="preserve">
     <value>{0} henüz hazır değil; {1} saniyeye kadar uyarı vermeden yeniden denenecek: {2}</value>
@@ -351,6 +402,21 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   <data name="Svc.PipeError" xml:space="preserve">
     <value>kanal hatası: {0}</value>
   </data>
+  <data name="Svc.DataDirLinksRemoved" xml:space="preserve">
+    <value>veri klasörü: oraya ait olmayan {0} bağ ya da sabit bağlı dosya silindi (klasör her açılışta güvenceye alınır).</value>
+  </data>
+  <data name="Svc.DataDirSecureFailed" xml:space="preserve">
+    <value>veri klasörü tam güvenceye alınamadı: {0}</value>
+  </data>
+  <data name="Svc.DataDirMovedAside" xml:space="preserve">
+    <value>veri klasörü: izinleri başka hesapların değiştirmesine açık bir klasör {0} adıyla kenara taşındı, yerine yenisi açıldı (içindeki raporlar alınmadı).</value>
+  </data>
+  <data name="Svc.DataDirUntrusted" xml:space="preserve">
+    <value>veri klasörü: {0} güvenceye alınamadı; hizmet bir sonraki açılışa dek oraya hiçbir şey yazmaz, yerine {1} kullanılır.</value>
+  </data>
+  <data name="Svc.PipeNameTaken" xml:space="preserve">
+    <value>{0} kanal adı başka bir sürecin elinde; o bırakana dek tepsi bağlanamaz. 5 saniyede bir yeniden deneniyor.</value>
+  </data>
   <data name="Svc.ReportDropped" xml:space="preserve">
     <value>"{0}" rapor olayı kuyruğa alınmadı (şemaya uymuyor: {1}).</value>
   </data>
@@ -369,6 +435,9 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   <data name="Svc.ScanError" xml:space="preserve">
     <value>tarama hatası: {0}</value>
   </data>
+  <data name="Svc.StatusTrimmed" xml:space="preserve">
+    <value>{0} birim durum yanıtına sığmadı, yanıtta yok (boyut sınırı; günlüğe bir kez).</value>
+  </data>
   <data name="Svc.Started" xml:space="preserve">
     <value>Hizmet başladı.</value>
   </data>
@@ -378,14 +447,65 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   <data name="Svc.Stopped" xml:space="preserve">
     <value>Hizmet durdu.</value>
   </data>
+  <data name="Svc.TrayRestartFailed" xml:space="preserve">
+    <value>Setup'ın kapattığı tepsi {0} numaralı Windows oturumunda yeniden açılamadı (hata {1}).</value>
+  </data>
+  <data name="Svc.TrayRestartSkipped" xml:space="preserve">
+    <value>Setup'ın yeniden açılacak tepsi listesi kullanılmadı ("{0}", yazıldığı an {1} UTC): çok eski, okunamıyor ya da tepsi programı yok.</value>
+  </data>
+  <data name="Svc.TrayRestarted" xml:space="preserve">
+    <value>Setup {0} numaralı Windows oturumundaki tepsiyi kapatmıştı; yeniden açıldı.</value>
+  </data>
   <data name="Svc.UnknownRequest" xml:space="preserve">
     <value>bilinmeyen istek</value>
   </data>
   <data name="Svc.UnlockFailed" xml:space="preserve">
     <value>{0}: "{1}" kilit açma başarısız: {2}</value>
   </data>
+  <data name="Svc.UnlockDiskGone" xml:space="preserve">
+    <value>{0}: "{1}" kilidi açılırken disk bırakıldı; anahtar silindi, birim bağlanmadı.</value>
+  </data>
+  <data name="Svc.UnlockDelayed" xml:space="preserve">
+    <value>{0}: çok sayıda yanlış parola; bu deneme {1} ms bekletildi.</value>
+  </data>
+  <data name="Raw.OpenTimedOut" xml:space="preserve">
+    <value>{0}: disk açılırken {1} sn içinde yanıt vermedi; okunamıyor sayıldı.</value>
+  </data>
+  <data name="Raw.ReadTimedOut" xml:space="preserve">
+    <value>{0}: disk bir okumayı {1} sn içinde yanıtlamadı; okunamıyor sayıldı.</value>
+  </data>
+  <data name="Raw.WriteTimedOut" xml:space="preserve">
+    <value>{0}: disk bir yazmayı {1} sn içinde tamamlamadı; yazılamıyor sayıldı.</value>
+  </data>
   <data name="Svc.UnmountError" xml:space="preserve">
     <value>{0}: ayırma hatası: {1}</value>
+  </data>
+  <data name="Svc.PowerEventFailed" xml:space="preserve">
+    <value>uyku/uyanış işlenirken hata: {0}</value>
+  </data>
+  <data name="Svc.PowerRegisterFailed" xml:space="preserve">
+    <value>Uyku bildirimlerine kaydolunamadı (hata {0}); yazılabilir sürücüler uykuda korunmuyor.</value>
+  </data>
+  <data name="Svc.PowerResume" xml:space="preserve">
+    <value>Uyanış: {0} yazma oturumu diske yazılmadan bırakıldı; salt okunur bağlandı.</value>
+  </data>
+  <data name="Svc.PowerSuspend" xml:space="preserve">
+    <value>Uyku: {0} yazma oturumu bekletildi, {1} tanesi kaydedildi ({2} ms); {3} kapı donduruldu, {4} tanesinde süren yazma vardı.</value>
+  </data>
+  <data name="Svc.WritesResumedVerified" xml:space="preserve">
+    <value>{0}: disk kimliği doğrulandı; yazma sürüyor.</value>
+  </data>
+  <data name="Svc.WritesHeldUnreadable" xml:space="preserve">
+    <value>{0}: disk kimliği bir kez okunamadı; yazma sonraki denetime dek bekletildi.</value>
+  </data>
+  <data name="Svc.SleepNotSaved" xml:space="preserve">
+    <value>uykudan önce kaydedilemedi</value>
+  </data>
+  <data name="Svc.SleptDuringEnable" xml:space="preserve">
+    <value>bilgisayar bu sırada uykuya geçti</value>
+  </data>
+  <data name="Svc.WritesFrozenForSleep" xml:space="preserve">
+    <value>uyku için yazma durduruldu</value>
   </data>
   <data name="Svc.WaitingForPassword" xml:space="preserve">
     <value>{0}: "{1}" parola bekliyor.</value>
@@ -408,6 +528,9 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   <data name="Svc.WriteSessionClosed" xml:space="preserve">
     <value>{0}: bölüm {1} yazma oturumu kapatıldı (son kayıt xid {2}).</value>
   </data>
+  <data name="Tray.StartFailed" xml:space="preserve">
+    <value>{0} başlatılamadı ({1}).</value>
+  </data>
   <data name="Update.BadHash" xml:space="preserve">
     <value>Güncelleme reddedildi: SHA-256 özeti Release'tekiyle aynı değil.</value>
   </data>
@@ -417,11 +540,17 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   <data name="Update.BadVersion" xml:space="preserve">
     <value>Güncelleme reddedildi: dosyanın sürümü {0}, beklenen {1}.</value>
   </data>
+  <data name="Update.CleanUpFailed" xml:space="preserve">
+    <value>güncelleme klasörü temizlenemedi: {0}: {1}</value>
+  </data>
   <data name="Update.Declined" xml:space="preserve">
     <value>Güncelleme {0}: setup {1} koduyla bitti; 24 saat kendiliğinden önerilmez.</value>
   </data>
   <data name="Update.DownloadFailed" xml:space="preserve">
     <value>Güncelleme indirilemedi: {0}</value>
+  </data>
+  <data name="Update.Held" xml:space="preserve">
+    <value>{0} güncellemesi doğrulanamadı; 24 saat kendiliğinden yeniden indirilmez.</value>
   </data>
   <data name="Update.HttpStatus" xml:space="preserve">
     <value>Güncelleme indirilemedi: sunucu {0} yanıtı verdi.</value>
@@ -431,6 +560,9 @@ Seçenekler: --volume N (birim sırası, varsayılan 0), --partition N (APFS bö
   </data>
   <data name="Update.NotApplied" xml:space="preserve">
     <value>{0} güncellemesi uygulanmadı (kurulu sürüm {1}); 24 saat kendiliğinden önerilmez.</value>
+  </data>
+  <data name="Update.ProxyAuth" xml:space="preserve">
+    <value>Güncelleme GitHub'a ulaşamadı: vekil sunucu kimlik istiyor (HTTP 407). Hashido vekil sunucuya kimlik bilgisi göndermez.</value>
   </data>
   <data name="Update.Stalled" xml:space="preserve">
     <value>Güncelleme indirmesi durdu: {0} sn ilerleme yok.</value>
