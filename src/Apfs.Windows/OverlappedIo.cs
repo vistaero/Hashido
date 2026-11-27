@@ -36,7 +36,12 @@ internal static class OverlappedIo
         bool keep = false;
         try
         {
-            if (ev == IntPtr.Zero) throw new ApfsException(ApfsErrorCode.IoError, new Win32Exception(Marshal.GetLastPInvokeError()).Message);
+            if (ev == IntPtr.Zero)
+            {
+                int err = Marshal.GetLastPInvokeError();
+                LogFailure(path, write, offset, length, "CreateEvent", err);
+                throw new ApfsException(ApfsErrorCode.IoError, new Win32Exception(err).Message);
+            }
             ov->OffsetLow = unchecked((int)offset);
             ov->OffsetHigh = (int)(offset >> 32);
             ov->EventHandle = ev;
@@ -45,7 +50,11 @@ internal static class OverlappedIo
             {
                 int err = Marshal.GetLastPInvokeError();
                 if (!write && err == ErrorHandleEof) return 0;
-                if (err != ErrorIoPending) throw Failure(path, err, write);
+                if (err != ErrorIoPending)
+                {
+                    LogFailure(path, write, offset, length, "submit", err);
+                    throw Failure(path, err, write);
+                }
             }
             uint timeoutMs = (uint)Math.Clamp(timeout.TotalMilliseconds, 1, int.MaxValue);
             bool expired = WaitForSingleObject(ev, timeoutMs) != WaitObject0;
@@ -56,6 +65,7 @@ internal static class OverlappedIo
                 {
                     keep = abandoned = true; // çekirdek hâlâ bu belleğe ve olaya erişebilir: bırakılmaz
                     RawDiskDevice.MarkStalled(path, write);
+                    LogTimeout(path, write, offset, length, timeoutMs, abandoned: true);
                     throw timedOut();
                 }
             }
@@ -63,7 +73,12 @@ internal static class OverlappedIo
             {
                 int err = Marshal.GetLastPInvokeError();
                 if (!write && err == ErrorHandleEof) return 0;
-                if (err == ErrorOperationAborted && expired) throw timedOut();
+                if (err == ErrorOperationAborted && expired)
+                {
+                    LogTimeout(path, write, offset, length, timeoutMs, abandoned: false);
+                    throw timedOut();
+                }
+                LogFailure(path, write, offset, length, "completion", err);
                 throw Failure(path, err, write);
             }
             return (int)done; // süre dolduğu anda biten istek de geçerli
@@ -84,6 +99,13 @@ internal static class OverlappedIo
         write && err == ErrorAccessDenied
             ? new ApfsException(ApfsErrorCode.AccessDenied, WinText.T("Raw.WriteDenied"))
             : new ApfsException(ApfsErrorCode.IoError, $"{path}: {new Win32Exception(err).Message}");
+
+    // Only raw device coordinates are logged; no file paths or file contents are included.
+    private static void LogFailure(string path, bool write, long offset, int length, string stage, int error) =>
+        ServiceLog.Write($"Raw I/O failure: device={path}, operation={(write ? "write" : "read")}, offset={offset}, length={length}, stage={stage}, win32={error} (0x{error:X8}).");
+
+    private static void LogTimeout(string path, bool write, long offset, int length, uint timeoutMs, bool abandoned) =>
+        ServiceLog.Write($"Raw I/O timeout: device={path}, operation={(write ? "write" : "read")}, offset={offset}, length={length}, timeout_ms={timeoutMs}, abandoned={abandoned}.");
 
     /// <summary>Tanıtıcıdaki bütün süren istekleri iptal eder (Dispose: güvenli kaldırmada tanıtıcı yavaş bir isteğin sonuna dek açık kalmasın).</summary>
     internal static unsafe void CancelAll(SafeFileHandle safe)
